@@ -588,7 +588,6 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
       <option value="name">Name: A–Z</option>
       <option value="level">Level: High–Low</option>
     </select>
-    <div class="gm-toggle" id="gmToggle"><span class="dot"></span> GM Mode</div>
     <button class="btn ghost sm" id="codexBtn">📖 Codex</button>
     <button class="btn ghost sm" id="importBtn">Import</button>
     <button class="btn ghost sm" id="exportAllBtn">Export All</button>
@@ -804,7 +803,7 @@ let customizing = false;
 
 function load(){
   try{ roster = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ roster = []; }
-  gmMode = localStorage.getItem(GMKEY) === '1';
+  gmMode = localStorage.getItem('af-view-role') !== 'player';   // GM view = grant powers
   // migrate any missing fields
   roster.forEach(c=>{ const b=blankChar(); for(const k in b){ if(!(k in c)) c[k]=b[k]; }
     if(!c.customPanels) c.customPanels=[];
@@ -840,7 +839,6 @@ function renderRoster(){
   else list.sort((a,b)=>(b.created||0)-(a.created||0));
 
   $('#slotCount').textContent = roster.length;
-  $('#gmToggle').classList.toggle('on', gmMode);
 
   if(!roster.length){
     grid.innerHTML = `<div class="empty-roster"><div class="big">No characters yet</div>
@@ -897,11 +895,6 @@ $('#rosterSearch').addEventListener('input', renderRoster);
 $('#rosterSort').addEventListener('change', renderRoster);
 $('#createBtn').addEventListener('click', ()=>{
   const c = blankChar(); roster.push(c); save(); openSheet(c.id); toast('New character created');
-});
-$('#gmToggle').addEventListener('click', ()=>{
-  gmMode = !gmMode; saveGM(); renderRoster();
-  if(current) renderSheet();
-  toast(gmMode?'GM Mode ON — you can grant items, spells & notes':'GM Mode off');
 });
 
 /* =====================================================================
@@ -2657,6 +2650,32 @@ async function afRefreshParty(){
 }
 function afRefreshPartySoon(){ clearTimeout(afPartyT); afPartyT = setTimeout(afRefreshParty, 300); }
 
+/* ---- campaign Codex auto-pull (players) ----
+   If the GM has published a Codex newer than what this device has,
+   download it into the same local cache the sheet tools already read. */
+async function afPullCodex(){
+  try{
+    var idx = await AFSync.getDoc('gm:codex:index');
+    if (!idx || !idx.content || !idx.content.stamp) return;
+    var stampKey = 'af-codex-stamp::' + AFSync.link().campaign_id;
+    var have = parseInt(localStorage.getItem(stampKey) || '0', 10);
+    if (idx.content.stamp <= have) return;
+    var meta = idx.content;
+    var lib = { meta: meta.meta || {}, domainOrder: meta.domainOrder || [],
+                domainIcons: meta.domainIcons || {}, collections: [] };
+    for (var i = 0; i < (meta.domainOrder || []).length; i++){
+      var doc = await AFSync.getDoc('gm:codex:' + meta.domainOrder[i]);
+      if (doc && doc.content && doc.content.collections)
+        lib.collections = lib.collections.concat(doc.content.collections);
+    }
+    if (!lib.collections.length) return;
+    codexSaveSnapshot(lib);
+    await loadCodexCache();
+    localStorage.setItem(stampKey, String(meta.stamp));
+    toast('📚 Campaign Codex received — ' + (meta.entries || lib.collections.length) + ' entries from your GM');
+  }catch(e){ /* codex pull is best-effort; solo cache keeps working */ }
+}
+
 (function afInit(){
   if (!AF_LINKED){ return; }
   var l = AFSync.link();
@@ -2687,6 +2706,7 @@ function afRefreshPartySoon(){ clearTimeout(afPartyT); afPartyT = setTimeout(afR
   openSheet = function(id){ _open(id); afRenderShareBtn(); };
 
   afRefreshParty();
+  if (!AFSync.isGM()) afPullCodex();   // GM's device is the source; players receive
   AFSync.onChange('character_sheets', function(payload){
     afRefreshPartySoon();
     if (afViewOnly && payload.new && payload.new.id === afViewRowId){
