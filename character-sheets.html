@@ -595,6 +595,15 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
     <button class="btn gold" id="createBtn">+ Create a Character</button>
   </div>
   <div class="card-grid" id="cardGrid"></div>
+
+  <!-- shared campaign sheets -->
+  <div id="partySection" style="display:none;margin-top:34px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <h2 style="font-family:'Cinzel',serif;font-weight:600;font-size:1.05rem;letter-spacing:.09em;color:var(--gold,#e3b352);margin:0">Party Sheets</h2>
+      <span id="partyHint" style="font-size:.78rem;color:#6f6c63">shared by your campaign — click to view</span>
+    </div>
+    <div class="card-grid" id="partyGrid"></div>
+  </div>
 </div>
 
 <!-- ============ SHEET VIEW ============ -->
@@ -602,7 +611,9 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
   <div class="sheet-bar">
     <button class="btn ghost" id="backBtn">← My Characters</button>
     <span class="customizing-note hidden" id="custNote">✥ Drag the handles to rearrange panels</span>
+    <span id="roChip" class="hidden" style="display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352"></span>
     <span class="spacer"></span>
+    <button class="btn sm" id="shareBtn" style="display:none">Share to Campaign</button>
     <button class="btn sm hidden" id="addPanelBtn">+ Add Panel</button>
     <button class="btn sm" id="customizeBtn">✥ Customize Layout</button>
     <button class="btn ghost sm" id="exportOneBtn">Export</button>
@@ -699,6 +710,9 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="arcanaforge-sync.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -799,7 +813,7 @@ function load(){
     if(!c.spell) c.spell={ability:'int',slots:{},list:[]};
   });
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(roster)); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(roster)); afQueuePush(); }
 function saveGM(){ localStorage.setItem(GMKEY, gmMode?'1':'0'); }
 
 function toast(msg){
@@ -874,6 +888,7 @@ $('#cardGrid').addEventListener('click', e=>{
   }
   else if(act==='del'){
     if(confirm(`Delete "${c.name}"? This cannot be undone.`)){
+      afHandleDelete(id);
       roster = roster.filter(x=>x.id!==id); save(); renderRoster(); toast('Character deleted');
     }
   }
@@ -895,6 +910,7 @@ $('#gmToggle').addEventListener('click', ()=>{
 function openSheet(id){
   current = roster.find(c=>c.id===id);
   if(!current) return;
+  afSetViewOnly(false);
   customizing = false;
   $('#rosterView').classList.add('hidden');
   $('#sheetView').classList.remove('hidden');
@@ -904,6 +920,7 @@ function openSheet(id){
 }
 function closeSheet(){
   current = null; customizing=false;
+  afSetViewOnly(false);
   $('#sheetView').classList.add('hidden');
   $('#rosterView').classList.remove('hidden');
   renderRoster();
@@ -923,6 +940,7 @@ $('#customizeBtn').addEventListener('click', ()=>{
 $('#exportOneBtn').addEventListener('click', ()=> exportChars([current]));
 $('#deleteOneBtn').addEventListener('click', ()=>{
   if(confirm(`Delete "${current.name}"?`)){
+    afHandleDelete(current.id);
     roster = roster.filter(x=>x.id!==current.id); save(); closeSheet(); toast('Character deleted');
   }
 });
@@ -2506,6 +2524,178 @@ bindDiceUI();
 bindCodexUI();
 renderRoster();
 if(document.fonts && document.fonts.ready){ document.fonts.ready.then(autoGrowNames); }
+
+/* =====================================================================
+   CAMPAIGN SYNC — share sheets with the table (character_sheets table)
+   Owner or GM may write; the whole party may view. Live updates.
+   ===================================================================== */
+var AF_LINKED = !!(window.AFSync && AFSync.isLinked());
+var afViewOnly = false;          // true while viewing someone else's sheet
+var afViewRowId = null;          // remote row being viewed
+var afPushT = null, afPartyT = null, afMembers = {};
+
+function afMapKey(){ return 'af-sheet-share::' + AFSync.link().campaign_id; }
+function afMap(){ try{ return JSON.parse(localStorage.getItem(afMapKey()))||{}; }catch(e){ return {}; } }
+function afSaveMap(m){ localStorage.setItem(afMapKey(), JSON.stringify(m)); }
+function afIsShared(id){ return AF_LINKED && !!afMap()[id]; }
+
+function afSetViewOnly(on, ownerLabel){
+  afViewOnly = on;
+  if (!on) afViewRowId = null;
+  var chip = document.getElementById('roChip');
+  if (chip){
+    chip.classList.toggle('hidden', !on);
+    if (on) chip.textContent = '👁 ' + (ownerLabel||'Party member') + '\u2019s sheet — read-only';
+  }
+  var del = document.getElementById('deleteOneBtn');
+  if (del) del.style.display = on ? 'none' : '';
+  afRenderShareBtn();
+}
+
+function afRenderShareBtn(){
+  var b = document.getElementById('shareBtn');
+  if (!b) return;
+  if (!AF_LINKED || afViewOnly || !current){ b.style.display='none'; return; }
+  b.style.display = '';
+  var shared = afIsShared(current.id);
+  b.textContent = shared ? '✓ Shared with Campaign' : 'Share to Campaign';
+  b.style.borderColor = shared ? '#9c7d3c' : '';
+  b.style.color = shared ? '#e3b352' : '';
+}
+
+function afQueuePush(){
+  if (!AF_LINKED || afViewOnly || !current) return;
+  var rowId = afMap()[current.id];
+  if (!rowId) return;
+  clearTimeout(afPushT);
+  var snap = current;
+  afPushT = setTimeout(function(){
+    AFSync.update('character_sheets', rowId, { character_name: snap.name||'Unnamed', sheet: snap })
+      .catch(function(){ toast('⚠ Sheet sync failed — saved on this device.'); });
+  }, 800);
+}
+
+function afHandleDelete(charId){
+  if (!AF_LINKED) return;
+  var m = afMap(), rowId = m[charId];
+  if (!rowId) return;
+  delete m[charId]; afSaveMap(m);
+  AFSync.remove('character_sheets', rowId).catch(function(){});
+  afRefreshPartySoon();
+}
+
+async function afToggleShare(){
+  if (!current || afViewOnly) return;
+  var m = afMap(), rowId = m[current.id];
+  var b = document.getElementById('shareBtn'); b.disabled = true;
+  try{
+    if (rowId){
+      await AFSync.remove('character_sheets', rowId);
+      delete m[current.id]; afSaveMap(m);
+      toast('No longer shared with the campaign');
+    } else {
+      var row = await AFSync.insert('character_sheets',
+        { character_name: current.name||'Unnamed', sheet: current });
+      m[current.id] = row.id; afSaveMap(m);
+      toast('Shared — the table can see this sheet now');
+    }
+    afRenderShareBtn(); afRefreshPartySoon();
+  }catch(e){ toast('⚠ ' + (e.message||'Could not update sharing.')); }
+  b.disabled = false;
+}
+
+function afNormalizeSheet(s){
+  var c = JSON.parse(JSON.stringify(s||{}));
+  var b = blankChar();
+  for (var k in b){ if (!(k in c)) c[k] = b[k]; }
+  if(!c.customPanels) c.customPanels=[];
+  if(!c.panelSizes) c.panelSizes={};
+  normalizeLayout(c);
+  if(!c.spell) c.spell={ability:'int',slots:{},list:[]};
+  return c;
+}
+
+function afOpenRemote(row){
+  var owner = afMembers[row.owner_id] || 'Party member';
+  current = afNormalizeSheet(row.sheet);
+  afViewRowId = row.id;
+  customizing = false;
+  document.getElementById('rosterView').classList.add('hidden');
+  document.getElementById('sheetView').classList.remove('hidden');
+  window.scrollTo(0,0);
+  renderSheet();
+  updateWho();
+  afSetViewOnly(true, owner);
+}
+
+async function afRefreshParty(){
+  if (!AF_LINKED) return;
+  try{
+    var user = await AFSync.ensureAuth();
+    var ms = await AFSync.members();
+    afMembers = {}; ms.forEach(function(m){ afMembers[m.user_id] = m.display_name; });
+    var rows = await AFSync.fetchAll('character_sheets', 'character_name');
+    var sec = document.getElementById('partySection');
+    var grid = document.getElementById('partyGrid');
+    window._afRows = rows;
+    sec.style.display = rows.length ? '' : 'none';
+    grid.innerHTML = rows.map(function(r){
+      var s = r.sheet||{}, mine = r.owner_id === user.id;
+      var sub = 'Level ' + (s.level||1) + ' | ' + esc(s.species||'—') + ' | ' + esc(s.clazz||'—');
+      var owner = mine ? 'You' : esc(afMembers[r.owner_id]||'Party member');
+      var port = s.portrait
+        ? '<div class="cc-portrait" style="background-image:url(\'' + esc(s.portrait) + '\')"></div>'
+        : '<div class="cc-portrait empty">◈</div>';
+      return '<div class="char-card" data-row="' + r.id + '">' +
+        '<div class="cc-banner">' + port +
+          '<div style="min-width:0"><div class="cc-name">' + esc(s.name||r.character_name) + '</div>' +
+          '<div class="cc-sub">' + sub + '</div>' +
+          '<div class="cc-sub" style="color:#9c7d3c">🛡 ' + owner + '</div></div>' +
+        '</div></div>';
+    }).join('');
+  }catch(e){ /* party grid is best-effort */ }
+}
+function afRefreshPartySoon(){ clearTimeout(afPartyT); afPartyT = setTimeout(afRefreshParty, 300); }
+
+(function afInit(){
+  if (!AF_LINKED){ return; }
+  var l = AFSync.link();
+  try{
+    var h1 = document.querySelector('.brand h1');
+    if (h1){
+      var chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:7px;margin-left:12px;padding:5px 12px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352;vertical-align:middle;';
+      chip.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#8fce9a;box-shadow:0 0 7px rgba(143,206,154,.7)"></span>' + (l.name||'Linked').replace(/[<>&]/g,'');
+      chip.title = 'Shared sheets sync live with your campaign';
+      h1.appendChild(chip);
+    }
+  }catch(e){}
+
+  document.getElementById('shareBtn').addEventListener('click', afToggleShare);
+  document.getElementById('partyGrid').addEventListener('click', function(e){
+    var card = e.target.closest('.char-card'); if(!card) return;
+    var row = (window._afRows||[]).find(function(r){ return r.id === card.dataset.row; });
+    if (!row) return;
+    var m = afMap();
+    var localId = Object.keys(m).find(function(k){ return m[k] === row.id; });
+    if (localId && roster.find(function(c){ return c.id===localId; })){ openSheet(localId); return; }
+    afOpenRemote(row);
+  });
+
+  /* re-render the share button whenever a sheet opens */
+  var _open = openSheet;
+  openSheet = function(id){ _open(id); afRenderShareBtn(); };
+
+  afRefreshParty();
+  AFSync.onChange('character_sheets', function(payload){
+    afRefreshPartySoon();
+    if (afViewOnly && payload.new && payload.new.id === afViewRowId){
+      current = afNormalizeSheet(payload.new.sheet);
+      renderSheet();
+      afSetViewOnly(true, afMembers[payload.new.owner_id]);
+    }
+  });
+})();
 </script>
 </body>
 </html>
