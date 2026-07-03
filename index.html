@@ -82,10 +82,8 @@ header{
 .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
 .nav-brand{display:flex;align-items:center;gap:12px}
 .nav-brand img{height:34px;width:auto}
-.nav-brand span{
-  font-family:var(--display);font-weight:600;font-size:1.05rem;
-  letter-spacing:.14em;color:var(--txt);
-}
+.nav-brand .nav-word{height:24px}
+@media(max-width:480px){.nav-brand .nav-word{display:none}}
 .nav-links{display:flex;align-items:center;gap:26px;font-size:.92rem}
 .nav-links a{color:var(--txt-soft);font-weight:400;transition:color .2s}
 .nav-links a:hover{color:var(--gold)}
@@ -120,13 +118,10 @@ header{
   width:190px;height:auto;margin:0 auto 14px;position:relative;
   filter:drop-shadow(0 0 34px rgba(227,179,82,.35));
 }
-.hero h1{
-  font-family:var(--display);font-weight:700;
-  font-size:clamp(2.4rem,6vw,3.9rem);
-  letter-spacing:.16em;
-  color:var(--gold);
-  text-shadow:0 0 40px rgba(227,179,82,.25);
-  position:relative;
+.hero-word{position:relative;margin:6px auto 0}
+.hero-word img{
+  width:min(560px,86vw);height:auto;margin:0 auto;
+  filter:drop-shadow(0 0 30px rgba(227,179,82,.28));
 }
 .hero .tag{
   font-family:var(--display);font-weight:500;
@@ -338,7 +333,7 @@ footer{
   <div class="wrap nav">
     <a class="nav-brand" href="./" aria-label="ArcanaForge home">
       <img src="arcanaforge-mark.png" alt="">
-      <span>ARCANAFORGE</span>
+      <img class="nav-word" src="arcanaforge-wordmark.png" alt="ArcanaForge">
     </a>
     <nav class="nav-links" aria-label="Site">
       <a href="#tools">Tools</a>
@@ -361,7 +356,7 @@ footer{
   <span class="ember" style="left:84%;width:3px;height:3px;--drift:-16px;animation-duration:13s;animation-delay:3.2s"></span>
 
   <img class="hero-mark" src="arcanaforge-mark.png" alt="The ArcanaForge sigil — an arcane gem striking sparks upon an anvil" width="190" height="190">
-  <h1>ARCANAFORGE</h1>
+  <h1 class="hero-word"><img src="arcanaforge-wordmark.png" alt="ArcanaForge" width="908" height="152"></h1>
   <p class="tag">Run the table. Forge the world.</p>
   <p class="sub">A Game Master's command center — combat tracking, character sheets,
      campaign notes, and five world-building generators, all drawing from one shared Codex.</p>
