@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://arcanaforge.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://arcanaforge.com/dashboard.html</loc><priority>0.9</priority></url>
+  <url><loc>https://arcanaforge.com/codex.html</loc><priority>0.8</priority></url>
+  <url><loc>https://arcanaforge.com/initiative-tracker.html</loc></url>
+  <url><loc>https://arcanaforge.com/character-sheets.html</loc></url>
+  <url><loc>https://arcanaforge.com/campaign-notes.html</loc></url>
+  <url><loc>https://arcanaforge.com/group-inventory.html</loc></url>
+  <url><loc>https://arcanaforge.com/npc-generator.html</loc></url>
+  <url><loc>https://arcanaforge.com/loot-generator.html</loc></url>
+  <url><loc>https://arcanaforge.com/shop-generator.html</loc></url>
+  <url><loc>https://arcanaforge.com/dungeon-generator.html</loc></url>
+  <url><loc>https://arcanaforge.com/environment-generator.html</loc></url>
+</urlset>
