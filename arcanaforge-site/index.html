@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcanaForge</title>
+<meta name="theme-color" content="#0a0c11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta http-equiv="refresh" content="0; url=dashboard.html">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+  location.replace('dashboard.html');
+</script>
+<style>
+  html,body{height:100%;margin:0;background:#0a0c11;color:#b4b0a4;
+    font-family:system-ui,sans-serif;display:grid;place-items:center;text-align:center}
+  a{color:#e3b352;text-decoration:none}
+</style>
+</head>
+<body>
+  <div>Opening ArcanaForge… <a href="dashboard.html">Enter&nbsp;&rarr;</a></div>
+</body>
+</html>

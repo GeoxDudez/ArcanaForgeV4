@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcanaForge — Shop Generator</title>
+<meta name="theme-color" content="#0a0c11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Spline+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   THE TABLE — SHOP GENERATOR
+   Generates an establishment: name, proprietor, stock + prices keyed to
+   the location type, optional spell scrolls, and exterior/interior
+   atmosphere. Reads the Codex when available. Shared family design
+   system: slate-black + gold + blood, Cinzel / Spline Sans.
+   ===================================================================== */
+:root{
+  --bg:#0a0c11; --bg2:#10131b; --panel:#181b24; --panel2:#1f232f;
+  --line:#2b3040; --line2:#363c4e;
+  --gold:#e3b352; --gold-dim:#a9863c; --gold-soft:#f0d59a;
+  --blood:#c62a30; --blood-dim:#8d2025;
+  --ink:#ece7da; --ink-dim:#a39d8e; --ink-faint:#6f6a5d;
+  --green:#7fae6b; --rad:14px;
+  --c-common:#cfc9bb; --c-uncommon:#7fae6b; --c-rare:#5b9bd5;
+  --c-veryrare:#b07fd4; --c-legendary:#e08a3c; --c-artifact:#c62a30;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Spline Sans',sans-serif; color:var(--ink);
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(227,179,82,.10), transparent 60%),
+    radial-gradient(900px 600px at 108% 4%, rgba(198,42,48,.10), transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, rgba(227,179,82,.05), transparent 60%),
+    var(--bg);
+  min-height:100vh; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+}
+.wrap{position:relative; z-index:1; max-width:1320px; margin:0 auto; padding:22px 22px 60px}
+
+/* ---------- header ---------- */
+header.top{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:14px 20px; margin-bottom:20px;
+  background:linear-gradient(180deg, rgba(31,35,47,.9), rgba(24,27,36,.9));
+  border:1px solid var(--line); border-radius:var(--rad);
+  box-shadow:0 10px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.brand{display:flex; flex-direction:column; gap:1px; margin-right:auto}
+.brand .kicker{font-size:11px; letter-spacing:.34em; text-transform:uppercase; color:var(--gold-dim)}
+.brand .kicker-logo{height:22px;width:auto;display:block;margin-bottom:3px}
+.brand h1{
+  font-family:'Cinzel',serif; font-weight:700; font-size:25px; letter-spacing:.02em;
+  color:var(--gold); text-shadow:0 1px 0 #000;
+}
+.brand h1 .sep{color:var(--ink-faint); font-weight:500; margin:0 8px}
+.tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.btn{
+  font-family:'Spline Sans',sans-serif; font-size:13px; font-weight:500;
+  color:var(--ink); background:var(--panel2); border:1px solid var(--line2);
+  padding:8px 13px; border-radius:9px; cursor:pointer; transition:.16s;
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--gold-dim); color:var(--gold-soft); transform:translateY(-1px)}
+.btn.ghost{background:transparent}
+.btn svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.7}
+
+/* GM switch */
+.gm{display:flex; align-items:center; gap:9px; padding-left:4px}
+.gm .lab{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim)}
+.switch{width:44px; height:24px; border-radius:13px; background:var(--panel2);
+  border:1px solid var(--line2); position:relative; cursor:pointer; transition:.18s}
+.switch::after{content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+  border-radius:50%; background:var(--ink-dim); transition:.18s}
+.switch.on{background:rgba(198,42,48,.25); border-color:var(--blood)}
+.switch.on::after{left:22px; background:var(--blood)}
+
+/* ---------- layout ---------- */
+.grid{display:grid; grid-template-columns:340px 1fr; gap:20px; align-items:start}
+@media(max-width:920px){.grid{grid-template-columns:1fr}}
+
+.panel{
+  background:linear-gradient(180deg, rgba(31,35,47,.72), rgba(24,27,36,.72));
+  border:1px solid var(--line); border-radius:var(--rad);
+  box-shadow:0 8px 24px rgba(0,0,0,.32);
+}
+.controls{padding:18px 18px 20px; position:sticky; top:18px}
+@media(max-width:920px){.controls{position:static}}
+
+.sec{padding:14px 0; border-top:1px solid var(--line)}
+.sec:first-of-type{border-top:none; padding-top:2px}
+.sec h3{
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:11px; display:flex; align-items:center; gap:8px;
+}
+.sec h3 .dot{width:5px; height:5px; border-radius:50%; background:var(--blood)}
+
+/* segmented */
+.seg{display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px}
+.seg button{
+  flex:1; font-family:'Spline Sans',sans-serif; font-size:12.5px; font-weight:500;
+  color:var(--ink-dim); background:transparent; border:none; padding:8px 6px;
+  border-radius:7px; cursor:pointer; transition:.15s;
+}
+.seg button.on{background:linear-gradient(180deg,var(--gold),var(--gold-dim)); color:#1a1206; font-weight:600}
+.seg button:not(.on):hover{color:var(--gold-soft)}
+
+select.fld{
+  width:100%; font-family:'Spline Sans',sans-serif; font-size:13.5px; color:var(--ink);
+  background:var(--bg2); border:1px solid var(--line2); border-radius:9px; padding:9px 11px;
+  cursor:pointer; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a9863c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 11px center;
+}
+select.fld:focus{outline:none; border-color:var(--gold-dim)}
+.fldlab{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 6px}
+
+/* toggles */
+.tog{display:flex; align-items:center; gap:10px; padding:7px 2px; cursor:pointer; user-select:none}
+.tog .box{width:18px; height:18px; border-radius:5px; border:1.5px solid var(--line2);
+  background:var(--bg2); flex:none; display:grid; place-items:center; transition:.15s}
+.tog .box svg{width:12px; height:12px; stroke:#1a1206; stroke-width:3; fill:none; opacity:0; transition:.15s}
+.tog.on .box{background:var(--gold); border-color:var(--gold)}
+.tog.on .box svg{opacity:1}
+.tog .t{font-size:13.5px; color:var(--ink)}
+.tog:hover .t{color:var(--gold-soft)}
+.tog.on .t{color:var(--gold-soft)}
+.subtog{padding-left:6px}
+.toggrid{display:grid; grid-template-columns:1fr 1fr; gap:0 14px}
+
+/* stepper */
+.stepper{display:flex; align-items:center; gap:0; background:var(--bg2); border:1px solid var(--line2);
+  border-radius:9px; overflow:hidden}
+.stepper button{width:34px; height:34px; background:transparent; border:none; color:var(--gold);
+  font-size:19px; cursor:pointer; transition:.15s; line-height:1}
+.stepper button:hover{background:var(--panel2)}
+.stepper .val{flex:1; text-align:center; font-weight:600; font-size:15px; font-variant-numeric:tabular-nums}
+.steprow{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 2px}
+.steprow .nm{font-size:13.5px; color:var(--ink)}
+
+.spelllvl{display:flex; gap:8px; align-items:center}
+.spelllvl select{flex:1}
+
+/* generate */
+.gen{
+  width:100%; margin-top:8px; font-family:'Cinzel',serif; font-weight:700; font-size:16px;
+  letter-spacing:.05em; color:#1a1206; cursor:pointer; padding:15px; border-radius:11px; border:none;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold) 45%,var(--gold-dim));
+  box-shadow:0 6px 18px rgba(227,179,82,.28), inset 0 1px 0 rgba(255,255,255,.4);
+  transition:.16s; display:flex; align-items:center; justify-content:center; gap:9px;
+}
+.gen:hover{transform:translateY(-2px); box-shadow:0 10px 26px rgba(227,179,82,.4)}
+.gen:active{transform:translateY(0)}
+.gen svg{width:18px; height:18px; stroke:#1a1206; fill:none; stroke-width:2}
+.hint{text-align:center; font-size:11px; color:var(--ink-faint); margin-top:9px; letter-spacing:.04em}
+.hint kbd{background:var(--bg2); border:1px solid var(--line2); border-radius:4px; padding:1px 5px; font-family:inherit; color:var(--ink-dim)}
+
+/* ---------- results ---------- */
+.results{min-height:60vh}
+.empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:80px 30px; color:var(--ink-faint);
+}
+.empty .crest{font-size:54px; margin-bottom:18px; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)); opacity:.85}
+.empty h2{font-family:'Cinzel',serif; color:var(--ink-dim); font-size:20px; margin-bottom:8px}
+.empty p{max-width:420px; font-size:14px}
+
+.haul-head{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  padding:18px 22px; margin-bottom:16px;
+  background:linear-gradient(135deg, rgba(31,35,47,.85), rgba(24,27,36,.6));
+  border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:var(--rad);
+}
+.haul-head .meta .lab{font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--gold-dim)}
+.haul-head .meta h2{font-family:'Cinzel',serif; font-size:21px; color:var(--ink); margin-top:2px}
+.haul-head .meta .sub{font-size:12.5px; color:var(--ink-dim); margin-top:3px}
+.haul-head .total{text-align:right}
+.haul-head .total .v{font-family:'Cinzel',serif; font-size:26px; color:var(--gold); font-weight:700; line-height:1}
+.haul-head .total .l{font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px}
+.haul-actions{display:flex; gap:9px; margin-top:12px; width:100%}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px}
+.card{
+  background:linear-gradient(180deg, rgba(31,35,47,.7), rgba(24,27,36,.7));
+  border:1px solid var(--line); border-radius:var(--rad); overflow:hidden;
+  box-shadow:0 6px 18px rgba(0,0,0,.28); animation:rise .4s ease both;
+}
+@keyframes rise{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:translateY(0)}}
+.card .ch{
+  display:flex; align-items:center; gap:9px; padding:11px 14px;
+  border-bottom:1px solid var(--line); background:rgba(0,0,0,.18);
+}
+.card .ch .ico{font-size:16px}
+.card .ch h4{font-family:'Cinzel',serif; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-soft); flex:1}
+.card .ch .reroll{width:26px; height:26px; border-radius:7px; border:1px solid var(--line2); background:var(--panel2);
+  color:var(--ink-dim); cursor:pointer; display:grid; place-items:center; transition:.15s}
+.card .ch .reroll:hover{color:var(--gold); border-color:var(--gold-dim); transform:rotate(90deg)}
+.card .ch .reroll svg{width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2}
+.card ul{list-style:none; padding:7px 8px 10px}
+.card li{
+  display:flex; align-items:center; gap:9px; padding:7px 8px; border-radius:8px; transition:.12s;
+}
+.card li:hover{background:rgba(255,255,255,.025)}
+.card li .nm{flex:1; font-size:14px}
+.card li .qty{font-size:12px; color:var(--ink-faint); font-variant-numeric:tabular-nums}
+.card li .gp{font-size:12px; color:var(--gold-dim); font-variant-numeric:tabular-nums; white-space:nowrap}
+.card li .mini{width:24px; height:24px; border-radius:6px; border:1px solid transparent; background:transparent;
+  color:var(--ink-faint); cursor:pointer; display:grid; place-items:center; transition:.14s; flex:none}
+.card li:hover .mini{border-color:var(--line2)}
+.card li .mini:hover{color:var(--gold)}
+.card li .mini svg{width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:2}
+.card li.locked{background:rgba(227,179,82,.07)}
+.card li.locked .lock{color:var(--gold)}
+
+/* rarity pips */
+.pip{width:8px; height:8px; border-radius:2px; flex:none; transform:rotate(45deg)}
+.pip.common{background:var(--c-common)} .pip.uncommon{background:var(--c-uncommon)}
+.pip.rare{background:var(--c-rare)} .pip.veryrare{background:var(--c-veryrare)}
+.pip.legendary{background:var(--c-legendary)} .pip.artifact{background:var(--c-artifact)}
+.rarity-tag{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; padding:1px 6px; border-radius:20px;
+  border:1px solid currentColor;}
+.rt.common{color:var(--c-common)} .rt.uncommon{color:var(--c-uncommon)} .rt.rare{color:var(--c-rare)}
+.rt.veryrare{color:var(--c-veryrare)} .rt.legendary{color:var(--c-legendary)} .rt.artifact{color:var(--c-artifact)}
+
+.card.lore .ch h4{color:#bba0d8}
+.card.spell .ch h4{color:#7fb0d8}
+.gm-only{display:none}
+body.gm-mode .gm-only{display:flex}
+.gmnote{font-size:11.5px; color:var(--blood); padding:4px 10px 9px; font-style:italic; line-height:1.4}
+
+/* stash drawer */
+.stash-wrap{margin-top:22px}
+.stash-wrap h3{font-family:'Cinzel',serif; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:11px; display:flex; align-items:center; gap:8px}
+.stash{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:11px}
+.stash .si{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:11px 13px; cursor:pointer; transition:.15s; position:relative}
+.stash .si:hover{border-color:var(--gold-dim); transform:translateY(-1px)}
+.stash .si .nm{font-family:'Cinzel',serif; font-size:13.5px; color:var(--ink)}
+.stash .si .sub{font-size:11.5px; color:var(--ink-dim); margin-top:3px}
+.stash .si .v{font-size:12px; color:var(--gold-dim); margin-top:4px}
+.stash .si .del{position:absolute; top:7px; right:7px; width:20px; height:20px; border:none; background:transparent;
+  color:var(--ink-faint); cursor:pointer; opacity:0; transition:.15s; font-size:14px}
+.stash .si:hover .del{opacity:1}
+.stash .si .del:hover{color:var(--blood)}
+.stash-empty{font-size:13px; color:var(--ink-faint); padding:6px 2px}
+
+/* toast */
+#toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+  background:var(--panel2); border:1px solid var(--gold-dim); color:var(--gold-soft);
+  padding:11px 18px; border-radius:10px; font-size:13.5px; opacity:0; pointer-events:none;
+  transition:.25s; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+
+.codex-chip{display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:4px 9px; border-radius:20px;
+  border:1px solid var(--line2); color:var(--ink-faint)}
+.codex-chip.live{color:var(--green); border-color:rgba(127,174,107,.4)}
+.codex-chip .d{width:6px; height:6px; border-radius:50%; background:currentColor}
+
+input[type=file]{display:none}
+
+/* ---------- shop-specific ---------- */
+.shop-head .meta h2.shopname{font-family:'Cinzel',serif; font-size:27px; color:var(--gold); line-height:1.1; margin-top:3px; text-shadow:0 1px 0 #000}
+.shop-head .meta .prop{font-size:13px; color:var(--ink-dim); margin-top:6px}
+.shop-head .meta .prop b{color:var(--ink); font-weight:500}
+.tags{display:flex; gap:7px; flex-wrap:wrap; margin-top:9px}
+.tag{font-size:10px; letter-spacing:.13em; text-transform:uppercase; padding:3px 9px; border-radius:20px;
+  border:1px solid var(--line2); color:var(--ink-dim); background:var(--bg2)}
+.tag.type{color:var(--gold-soft); border-color:var(--gold-dim)}
+.tag.q1{color:#9c948a} .tag.q2{color:#bdb3a3} .tag.q3{color:var(--green)}
+.tag.q4{color:var(--c-rare)} .tag.q5{color:var(--c-veryrare)}
+.card.atmo .ch h4{color:#bba0d8}
+.card.atmo li{align-items:flex-start}
+.card.atmo li .nm{font-size:13.5px; line-height:1.45; color:var(--ink-dim)}
+.card.atmo li .atag{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#8d7ba8;
+  flex:none; width:74px; padding-top:2px}
+.card.scroll .ch h4{color:#7fb0d8}
+.card li .stock{font-size:11px; color:var(--ink-faint); background:var(--bg2); border:1px solid var(--line);
+  border-radius:20px; padding:1px 7px; font-variant-numeric:tabular-nums; flex:none}
+.lvl-tag{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:#7fb0d8;
+  border:1px solid currentColor; border-radius:20px; padding:1px 6px}
+.namebar{display:flex; gap:8px; margin-top:10px}
+.namebar .btn{flex:1; justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <img class="kicker-logo" src="arcanaforge-wordmark.png" alt="ArcanaForge">
+      <h1>Shop <span class="sep">·</span> Generator</h1>
+    </div>
+    <div class="tools">
+      <span id="codexChip" class="codex-chip"><span class="d"></span><span id="codexTxt">No Codex data</span></span>
+      <button class="btn ghost" id="loadCodexBtn" title="Pull custom lists from your Codex export">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Load Codex</button>
+      <button class="btn ghost" id="exportBtn" title="Export saved stashes">
+        <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>Export</button>
+      <button class="btn ghost" id="importBtn" title="Import saved stashes">
+        <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 16V4m0 0l4 4m-4-4l-4 4"/></svg>Import</button>
+      <div class="gm">
+        <span class="lab">GM</span>
+        <div class="switch" id="gmSwitch"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ CONTROL PANEL ============ -->
+        <aside class="panel controls">
+
+      <div class="sec">
+        <h3><span class="dot"></span>Location</h3>
+        <select class="fld" id="locSel"></select>
+        <div class="namebar">
+          <button class="btn ghost" id="randLoc" title="Pick a random location type"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>Random type</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3><span class="dot"></span>Quality</h3>
+        <p class="fldlab">Establishment tier &amp; markup</p>
+        <select class="fld" id="qualSel">
+          <option value="1">Squalid · cheap, common goods</option>
+          <option value="2">Modest · everyday stock</option>
+          <option value="3" selected>Comfortable · solid wares</option>
+          <option value="4">Wealthy · fine &amp; rare goods</option>
+          <option value="5">Aristocratic · the finest, rarest</option>
+        </select>
+        <div class="steprow" style="margin-top:12px">
+          <span class="nm">Items in stock</span>
+          <div class="stepper"><button id="stMinus">−</button><span class="val" id="stVal">10</span><button id="stPlus">+</button></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3><span class="dot"></span>Include</h3>
+        <label class="tog on" data-key="proprietor"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span><span class="t">Proprietor</span></label>
+        <label class="tog on" data-key="atmosphere"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span><span class="t">Atmosphere (exterior &amp; interior)</span></label>
+        <label class="tog" data-key="forceMagic"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span><span class="t">Stock magic items &amp; potions</span></label>
+        <label class="tog" data-key="mounts"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span><span class="t">Mounts &amp; tack</span></label>
+      </div>
+
+      <div class="sec">
+        <h3><span class="dot"></span>Spell Scrolls</h3>
+        <label class="tog" data-key="scrolls"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></span><span class="t">Stock spell scrolls for sale</span></label>
+        <div id="scrollOpts" style="display:none; margin-top:8px">
+          <div class="spelllvl">
+            <select class="fld" id="scrollLvl">
+              <option value="0">Cantrips</option>
+              <option value="1">1st level</option><option value="2">2nd level</option>
+              <option value="3">3rd level</option><option value="4">4th level</option>
+              <option value="5">5th level</option><option value="6">6th level</option>
+              <option value="7">7th level</option><option value="8">8th level</option>
+              <option value="9">9th level</option>
+              <option value="any">Any / mixed</option>
+            </select>
+          </div>
+          <div class="steprow" style="margin-top:8px">
+            <span class="nm">How many</span>
+            <div class="stepper"><button id="scMinus">−</button><span class="val" id="scVal">3</span><button id="scPlus">+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="gen" id="genBtn">
+        <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg>
+        Open the Shop
+      </button>
+      <p class="hint">Press <kbd>Space</kbd> or <kbd>G</kbd> to generate · <kbd>L</kbd> to keep-locked reroll · <kbd>N</kbd> for a new name</p>
+    </aside>
+
+    <!-- ============ RESULTS ============ -->
+    <main class="results">
+      <div id="resultArea">
+        <div class="empty">
+          <div class="crest">⚖</div>
+          <h2>The street awaits a shop</h2>
+          <p>Pick a location type and a quality, choose what to stock, and open the doors. You’ll get a name, a proprietor, priced inventory keyed to the place, and its atmosphere. Lock what you like, reroll the rest, and save shops to your ledger.</p>
+        </div>
+      </div>
+
+      <div class="stash-wrap">
+        <h3><span style="color:var(--blood)">◆</span> Saved Shops</h3>
+        <div class="stash" id="stashList"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="codexFile" accept="application/json,.json">
+<input type="file" id="importFile" accept="application/json,.json">
+
+<script>
+/* =====================================================================
+   THE TABLE — SHOP GENERATOR
+   Generates an establishment keyed to its location type. Curated
+   priced catalogs ship built-in; Codex lists layer on top at runtime.
+   ===================================================================== */
+
+/* ---- dice ---- */
+function d(n){return Math.floor(Math.random()*n)+1;}
+function roll(num,sides,mult=1){let s=0;for(let i=0;i<num;i++)s+=d(sides);return s*mult;}
+function d100(){return d(100);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function pickN(a,n){const c=[...a],out=[];n=Math.min(n,c.length);for(let i=0;i<n;i++){out.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);}return out;}
+function chance(p){return Math.random()<p;}
+
+/* ---- catalog helper: pairs [name, gp] -> {nm,gp} ---- */
+function mk(pairs){ return pairs.map(([nm,gp])=>({nm,gp})); }
+
+/* =====================================================================
+   PRICED CATALOGS (PHB-faithful where applicable; gp values)
+   ===================================================================== */
+const WEAPONS = mk([
+  ['Club',0.1],['Dagger',2],['Greatclub',0.2],['Handaxe',5],['Javelin',0.5],['Light hammer',2],
+  ['Mace',5],['Quarterstaff',0.2],['Sickle',1],['Spear',1],['Light crossbow',25],['Dart',0.05],
+  ['Shortbow',25],['Sling',0.1],['Battleaxe',10],['Flail',10],['Glaive',20],['Greataxe',30],
+  ['Greatsword',50],['Halberd',20],['Lance',10],['Longsword',15],['Maul',10],['Morningstar',15],
+  ['Pike',5],['Rapier',25],['Scimitar',25],['Shortsword',10],['Trident',5],['War pick',5],
+  ['Warhammer',15],['Whip',2],['Blowgun',10],['Hand crossbow',75],['Heavy crossbow',50],
+  ['Longbow',50],['Net',1],['Double-bladed scimitar',100],
+]);
+const ARMOR = mk([
+  ['Padded armor',5],['Leather armor',10],['Studded leather',45],['Hide armor',10],['Chain shirt',50],
+  ['Scale mail',50],['Breastplate',400],['Half plate',750],['Ring mail',30],['Chain mail',75],
+  ['Splint armor',200],['Plate armor',1500],['Shield',10],['Spiked armor',75],['Pride silk outfit',500],
+]);
+const TOOLS = mk([
+  ['Alchemist\u2019s supplies',50],['Brewer\u2019s supplies',20],['Calligrapher\u2019s supplies',10],
+  ['Carpenter\u2019s tools',8],['Cartographer\u2019s tools',15],['Cobbler\u2019s tools',5],['Cook\u2019s utensils',1],
+  ['Glassblower\u2019s tools',30],['Jeweler\u2019s tools',25],['Leatherworker\u2019s tools',5],['Mason\u2019s tools',10],
+  ['Painter\u2019s supplies',10],['Potter\u2019s tools',10],['Smith\u2019s tools',20],['Tinker\u2019s tools',50],
+  ['Weaver\u2019s tools',1],['Woodcarver\u2019s tools',1],['Disguise kit',25],['Forgery kit',15],
+  ['Herbalism kit',5],['Navigator\u2019s tools',25],['Poisoner\u2019s kit',50],['Thieves\u2019 tools',25],
+]);
+const INSTRUMENTS = mk([
+  ['Bagpipes',30],['Drum',6],['Dulcimer',25],['Flute',2],['Lute',35],['Lyre',30],['Horn',3],
+  ['Pan flute',12],['Shawm',2],['Viol',30],['Glaur',2],['Hand drum',5],['Songhorn',1],['Birdpipes',25],
+]);
+const GEAR = mk([
+  ['Abacus',2],['Acid (vial)',25],['Alchemist\u2019s fire (flask)',50],['Antitoxin (vial)',50],['Backpack',2],
+  ['Ball bearings (bag of 1,000)',1],['Barrel',2],['Basket',0.4],['Bedroll',1],['Bell',1],['Blanket',0.5],
+  ['Block and tackle',1],['Bottle, glass',2],['Bucket',0.05],['Caltrops (bag of 20)',1],['Candle',0.01],
+  ['Chain (10 feet)',5],['Climber\u2019s kit',25],['Component pouch',25],['Crowbar',2],['Fishing tackle',1],
+  ['Grappling hook',2],['Hammer',1],['Healer\u2019s kit',5],['Holy water (flask)',25],['Hourglass',25],
+  ['Hunting trap',5],['Ink (1 ounce)',10],['Lantern, bullseye',10],['Lantern, hooded',5],['Lock',10],
+  ['Magnifying glass',100],['Manacles',2],['Mess kit',0.2],['Mirror, steel',5],['Oil (flask)',0.1],
+  ['Piton',0.05],['Pole (10-foot)',0.05],['Pot, iron',2],['Pouch',0.5],['Quiver',1],['Ram, portable',4],
+  ['Rations (1 day)',0.5],['Rope, hempen (50 ft)',1],['Rope, silk (50 ft)',10],['Shovel',2],
+  ['Signal whistle',0.05],['Signet ring',5],['Spellbook',50],['Spyglass',1000],['Tent, two-person',2],
+  ['Tinderbox',0.5],['Torch',0.01],['Vial',1],['Waterskin',0.2],['Whetstone',0.01],
+]);
+const MISC = mk([
+  ['Alms box',1],['Amulet',5],['Block of incense',5],['Boots',2],['Censer',5],['Clothing, cold weather',10],
+  ['Crampons',2],['Helm',10],['Insect repellent incense',1],['Perfume (vial)',5],['Scale, merchant\u2019s',5],
+  ['Sealing wax',0.5],['Soap',0.02],['Spikes, iron (10)',1],['Waterskin, fine',1],['Hand mirror',2],
+  ['Saddle soap',1],['Wax candle set',0.5],['Bar of fine soap',0.5],['Brass spectacles',5],
+]);
+const PACKS = mk([
+  ['Burglar\u2019s Pack',16],['Diplomat\u2019s Pack',39],['Dungeoneer\u2019s Pack',12],['Entertainer\u2019s Pack',40],
+  ['Explorer\u2019s Pack',10],['Priest\u2019s Pack',19],['Scholar\u2019s Pack',40],
+]);
+const FOOD_PORTION = {small:0.04, medium:0.3, hearty:1.2};
+function mkfood(names,portion){ return names.map(nm=>({nm,portion,gp:FOOD_PORTION[portion]})); }
+const FOOD = [].concat(
+  mkfood(['Boiled potato','Fish','Pig\u2019s head','Banana','Handmade cookies','Biscuit','Carnival squash',
+    'Cabbage','Butter bun','Carrot','Charming little egg','Chicken egg','Cinnamon roll','Courgette','Coffee',
+    'Dried beef sausage','Honey comb','Head of lettuce','Milk','Mixed coffee','Onion','Orange','Pear','Potato',
+    'Red apple','Tea','Tomato','Turnip','Spicy pork sausage','Mashed potatoes','Sweet potato'],'small'),
+  mkfood(['Chevon','Grilled pork belly','Grilled pork leg','Grilled Roth\u00e9 ribs','Grilled steak','Berry tart',
+    'Cormyran seafood soup','Murky stew','Neverwinter stew','Spicy shrimp soup','Stout stew','Treacle tart',
+    'Vegetable broth','Whole chicken','Bagel','Baguette','Beregost blue wheel','Mushroom soup','Onion soup',
+    'Pork loin','Potato wedges','Sourdough bread','Split pea soup','Sunflower seed bun','White bread','Fruit porridge',
+    'Leg of mutton','Sunmelon half','Vegetable soup'],'medium'),
+  mkfood(['Black pudding platter','Boiled beholder eyestalks','Grilled cormorant','Grilled miniature giant space hamster',
+    'Roughly-cut ham','Puff pastry braid','Waterdhavian cheese wheel','Suspicious meat','Everything soup','Pumpkin soup',
+    'Whole roast boar','Stuffed peacock','Dwarven feast board'],'hearty')
+);
+const DRINK_TIER_GP = {1:0.04, 2:0.1, 3:0.2, 4:1, 5:5, 6:20};
+function mkdrink(names,tier){ return names.map(nm=>({nm,tier})); }
+const DRINK = [].concat(
+  mkdrink(['Baalor Ale','Baldur\u2019s Grape','Barrel-Aged Callidyrran','Gulthmeran Reserve','Highliqueur',
+    'Marsember Ice Wine','Mermaid Whiskey','Purple Dragon Blush','Arabellan Dry'],6),
+  mkdrink(['Amnian Dessert Wine','Arkhen\u2019s Hoard','Blackstaff','Eigersstor Noblerot','Frostkiss Ale',
+    'Portal Sherry','Stagswift Tonic','Suzailian Sweet','Syl-Pashan Sup','Tyche Pink'],4),
+  mkdrink(['House wine','Esmeltar Red','Farsea Marshwine','Monastery Firewine'],3),
+  mkdrink(['Ashaba Dusk','Blingdenstone Blush','Brass City Scrangle','Carafe of table-wine','Chultan Fireswill',
+    'Common table-wine','Ithbank Ithbank','Lovely malty beer','Mug of beer','Pitcher of beer','Plum fizz',
+    'Rolling Deck rum','Rosymorn Firewine','Starburst Shandy','Whalebone Spiced','Tej'],1)
+);
+const CURIOS = mk([
+  ['Carved bone figurine',3],['Brass pocket compass',8],['Cracked hand mirror',2],['Off-key music box',12],
+  ['Jade hair comb',10],['Tarnished silver locket',6],['Glass eye marble',1],['Deck of bawdy playing cards',2],
+  ['Stuffed owlbear cub (toy)',5],['Wax-sealed love letter',1],['Map to nowhere',3],['Petrified mouse',1],
+  ['Loaded ivory dice',8],['Snow globe of a burning city',15],['Pewter holy symbol',4],['Tin wind-up beetle',4],
+  ['Scrimshaw whale tooth',9],['Counterfeit royal seal',20],['Single elegant dueling glove',3],['Cuckoo clock',18],
+  ['Bag of mismatched buttons',1],['Dried four-leaf clover',2],['Bottle of false perfume',3],['Painted clay whistle',1],
+]);
+const BOOKS = mk([
+  ['A Traveler\u2019s Guide to the Sword Coast',25],['The Drowned Codex',50],['On the Nature of Beasts',25],
+  ['Hymns of the Morninglord',25],['Bestiary of the Underdark',40],['The Red Wizard\u2019s Folly',30],
+  ['Cookery of the Dalelands',20],['Tales of the Yawning Portal',25],['A Child\u2019s First Spellbook',15],
+  ['The Art of the Long Con',30],['Genealogy of the Obarskyr Kings',45],['Ledger of Forgotten Debts',10],
+  ['Field Notes on Aberrations',35],['The Complete Angler of Chult',20],['Poems for a Lonely Lighthouse',15],
+]);
+const POISONS = mk([
+  ['Assassin\u2019s blood (ingested)',150],['Basic poison (vial)',100],['Malice (inhaled)',250],['Drow poison',200],
+  ['Serpent venom',200],['Pale tincture',250],['Truth serum',150],['Midnight tears',1500],['Laudanum',30],
+  ['White ghost orchid seed',300],['Black ghost orchid seed',300],['Soothsalts (dose)',40],['Black sap (dose)',25],
+]);
+const MOUNTS = mk([
+  ['Pony',30],['Riding horse',75],['Draft horse',50],['Warhorse',400],['Mule',8],['Camel',50],['Mastiff',25],
+  ['Elephant',200],['Axe beak',50],['Giant lizard',60],['Ox',15],
+]);
+const TACK = mk([
+  ['Riding saddle',10],['Exotic saddle',60],['Military saddle',20],['Pack saddle',5],['Saddlebags',4],
+  ['Bit and bridle',2],['Feed (per day)',0.05],['Stabling (per day)',0.5],['Barding (chain shirt)',200],['Cart',15],
+]);
+const DRAGONSHARDS = mk([
+  ['Eberron shard (small)',8],['Eberron shard (greater)',40],['Siberys shard (least)',100],
+  ['Siberys shard (lesser)',800],['Siberys shard (greater)',2000],['Khyber shard (small)',300],['Khyber shard (large)',1000],
+]);
+
+/* ---- PRICE BOOK: pricing stays in the generator (per the chosen model).
+   Codex supplies item NAMES; we look up a known price here, else fall back
+   to the category default passed by routeList. Built from the catalogs above. ---- */
+const PRICEBOOK = {};
+[WEAPONS,ARMOR,TOOLS,INSTRUMENTS,GEAR,MISC,PACKS,CURIOS,BOOKS,POISONS,MOUNTS,TACK,DRAGONSHARDS]
+  .forEach(cat=>cat.forEach(o=>{ if(o&&o.nm!=null&&o.gp!=null) PRICEBOOK[o.nm.toLowerCase()]=o.gp; }));
+function priceFor(name, fallback){ const p=PRICEBOOK[String(name).toLowerCase()]; return (p!=null)?p:fallback; }
+
+/* magic item / potion / spell NAMES come from the Codex (see CODEX ACCESS
+   below); only their price-by-rarity rules stay hand-authored here. */
+const POT_PRICE = {common:40, uncommon:150, rare:450, veryrare:1000};
+const SCROLL_PRICE = {0:30,1:60,2:120,3:200,4:320,5:640,6:1280,7:2560,8:5120,9:10240};
+
+/* =====================================================================
+   LOCATION PROFILES — what each place stocks, who runs it, its style.
+   cats: [categoryKey, weight] pairs. foodBias biases food portion.
+   ===================================================================== */
+const DRINK_HEAVY=[['drink',5],['food',3],['misc',1],['curios',1]];
+const GENERAL=[['gear',4],['tools',3],['misc',3],['packs',2],['food',1],['weapons',1]];
+function L(label,group,cats,style,opt={}){ return {label,group,cats,style,foodBias:opt.foodBias||null}; }
+const LOCS = {
+  bar:      L('Bar','Drinking & Lodging',DRINK_HEAVY,'tavern'),
+  tavern:   L('Tavern','Drinking & Lodging',DRINK_HEAVY,'tavern'),
+  pub:      L('Pub','Drinking & Lodging',DRINK_HEAVY,'tavern'),
+  club:     L('Club','Drinking & Lodging',[['drink',5],['curios',2],['food',1]],'tavern'),
+  inn:      L('Inn','Drinking & Lodging',[['drink',3],['food',3],['gear',2],['misc',1]],'tavern'),
+  lounge:   L('Lounge','Drinking & Lodging',[['drink',5],['curios',2],['misc',1]],'tavern'),
+  den:      L('Den','Drinking & Lodging',[['drink',4],['curios',2],['poisons',1]],'tavern'),
+  lodge:    L('Lodge','Drinking & Lodging',[['drink',3],['food',3],['gear',2],['mounts',1]],'tavern'),
+  hangout:  L('Hangout','Drinking & Lodging',[['drink',4],['food',2],['curios',2]],'tavern'),
+
+  exoticFood:L('Exotic Food','Food',[['food',5],['drink',2]],'exotic',{foodBias:'hearty'}),
+  cheapFood: L('Cheap Food','Food',[['food',5],['drink',2]],'food',{foodBias:'small'}),
+
+  general:  L('General Goods','Goods & Trade',GENERAL,'shop'),
+  trader:   L('Trader','Goods & Trade',GENERAL,'shop'),
+  trading:  L('Trading Post','Goods & Trade',[['gear',3],['tools',2],['misc',3],['packs',1],['curios',1],['food',1]],'shop'),
+  discount: L('Discount Shop','Goods & Trade',[['gear',3],['misc',3],['tools',2],['weapons',1],['curios',1]],'shop'),
+  swapmeet: L('Swap Meet','Goods & Trade',[['curios',3],['gear',2],['misc',2],['weapons',1],['tools',1],['books',1]],'shop'),
+  base:     L('Base / Garrison','Goods & Trade',[['weapons',3],['armor',3],['gear',2],['packs',1],['food',1]],'shop'),
+
+  smith:    L('Smith / Armorer','Specialists',[['weapons',5],['armor',5],['tools',2]],'smith'),
+  magical:  L('Magical / Charming','Specialists',[['magic',5],['potions',3],['curios',1]],'magic'),
+  blackmarket:L('Blackmarket','Specialists',[['magic',3],['potions',2],['poisons',3],['curios',2]],'magic'),
+  privatebooths:L('Private Booths','Specialists',[['magic',2],['curios',3],['misc',2],['potions',1]],'magic'),
+
+  brothel:  L('Brothel','Pleasure & Play',[['drink',3],['curios',2],['food',1],['misc',1]],'brothel'),
+  casino:   L('Casino','Pleasure & Play',[['drink',3],['curios',2],['misc',1]],'casino'),
+  baths:    L('Baths','Pleasure & Play',[['misc',3],['drink',1],['curios',1]],'shop'),
+
+  library:  L('Library','Knowledge',[['books',5],['curios',1],['tools',1]],'library'),
+  theatre:  L('Theatre','Knowledge',[['instruments',3],['curios',2],['drink',1],['food',1]],'shop'),
+};
+
+/* =====================================================================
+   NAME + PROPRIETOR GENERATION
+   ===================================================================== */
+function nounFor(style){ const sp=styleNounPool(style); return chance(0.6)&&sp.length ? pick(sp) : pick(nounPool()); }
+function genName(style, ownerFirst){
+  const a=pick(adjPool())||'Gilded', n=nounFor(style)||'Stag';
+  const snPool=shopNounPool(style); const shop=snPool.length?pick(snPool):(pick(nounPool())||'Goods');
+  const r=d(100);
+  if(r<=34) return `The ${a} ${n}`;
+  if(r<=50) return `The ${nounFor(style)} & ${nounFor(style)}`;
+  if(r<=66 && ownerFirst) return `${ownerFirst}\u2019s ${shop}`;
+  if(r<=78) return `The ${a} ${shop}`;
+  if(r<=88) return `${n} & ${chance(0.5)?'Sons':'Co.'}`;
+  if(r<=95) return `The ${shop} of the ${a} ${n}`;
+  return `${pick(['Ye','The'])} ${a} ${n}`;
+}
+function genOwner(style){
+  const fp=firstNamePool(), sp=surnamePool(), rp=racePool(), tp=titlePool(style);
+  const first=fp.length?pick(fp):'Mira';
+  const surname=(chance(0.7)&&sp.length)?' '+pick(sp):'';
+  const race=rp.length?pick(rp):'human';
+  const title=tp.length?pick(tp):'Proprietor';
+  return {first, full:first+surname, race, title};
+}
+function LOCS_titles(style){ return titlePool(style); }
+
+/* =====================================================================
+   ATMOSPHERE DESCRIBERS — six lines (exterior, sign, interior, air,
+   detail, who's inside), each drawn from its own Codex list.
+   ===================================================================== */
+function makeAtmo(){
+  return [
+    {atag:'Exterior', nm:cap(pick(atmoPool('Exterior'))||'a quiet storefront')+'.'},
+    {atag:'Sign', nm:cap(pick(atmoPool('Sign'))||'a modest sign')+'.'},
+    {atag:'Interior', nm:cap(pick(atmoPool('Interior'))||'a tidy interior')+'.'},
+    {atag:'In the air', nm:'It smells of '+(pick(atmoPool('Air'))||'dust and old wood')+'.'},
+    {atag:'Detail', nm:'You notice '+(pick(atmoPool('Detail'))||'a curious little detail')+'.'},
+    {atag:'Inside', nm:cap(pick(atmoPool('Inside'))||'a few quiet patrons')+'.'},
+  ];
+}
+function makeAtmoLine(tag){
+  const map={'Exterior':['Exterior','Exterior',s=>cap(s)+'.'],'Sign':['Sign','Sign',s=>cap(s)+'.'],
+    'Interior':['Interior','Interior',s=>cap(s)+'.'],'In the air':['In the air','Air',s=>'It smells of '+s+'.'],
+    'Detail':['Detail','Detail',s=>'You notice '+s+'.'],'Inside':['Inside','Inside',s=>cap(s)+'.']};
+  const m=map[tag]||map['Detail']; const pool=atmoPool(m[1]);
+  if(!pool.length) return {atag:m[0], nm:''};
+  return {atag:m[0], nm:m[2](pick(pool))};
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+/* =====================================================================
+   CODEX ACCESS — every catalog name, magic item, potion, spell, shop
+   name/adjective/noun, proprietor name, title, and atmosphere line is
+   read live from the Codex. Only dice formulas, quality math, and price
+   lookups (above) stay hand-authored here.
+   ===================================================================== */
+/* ===== SHARED CODEX ACCESS \u00b7 identical across every Table tool =====
+   Single source of truth: reads the Codex's live save (codex_db_v1) when tools
+   share an origin; else the most complete snapshot any tool imported. One shared
+   snapshot key (codex-shared-cache-v1) means importing once serves every tool. */
+const CODEX_SHARED_CACHE='codex-shared-cache-v1';
+const CODEX_LEGACY_CACHES=['dnd-table-codex-cache-v1','dnd-npcgen-codex-cache-v1','ttrpg-char-codex-cache'];
+function codexLooks(o){return !!(o&&typeof o==='object'&&Array.isArray(o.collections)&&o.collections.some(c=>c&&Array.isArray(c.entries)));}
+function codexUnwrap(o){if(codexLooks(o))return o;if(o&&typeof o==='object'){if(o.data&&codexLooks(o.data))return o.data;for(const k of['library','codex','state'])if(codexLooks(o[k]))return o[k];}return null;}
+function codexCount(l){return l.collections.reduce((n,c)=>n+(Array.isArray(c.entries)?c.entries.length:0),0);}
+function codexStamp(o,l){if(o&&typeof o.at==='number')return o.at;const m=(l&&l.meta)||{};for(const f of['updated','exported','savedAt','modified','lastSaved','date']){if(m[f]){const t=Date.parse(m[f]);if(!isNaN(t))return t;}}return 0;}
+/* IDB bridge — reads Codex from IndexedDB (quota-based) before falling back to localStorage */
+const _IDB_DB='the-table-codex',_IDB_ST='data',_IDB_REC='codex_db_v1';
+function _idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(_IDB_DB,1);r.onupgradeneeded=e=>e.target.result.createObjectStore(_IDB_ST);r.onsuccess=e=>res(e.target.result);r.onerror=()=>rej();});}
+async function _idbGet(){try{const idb=await _idbOpen();return new Promise((res,rej)=>{const r=idb.transaction(_IDB_ST).objectStore(_IDB_ST).get(_IDB_REC);r.onsuccess=e=>res(e.target.result||null);r.onerror=()=>rej();});}catch(e){return null;}}
+async function _idbPut(val){try{const idb=await _idbOpen();return new Promise((res,rej)=>{const tx=idb.transaction(_IDB_ST,'readwrite');tx.objectStore(_IDB_ST).put(val,_IDB_REC);tx.oncomplete=()=>res();tx.onerror=()=>rej();});}catch(e){}}
+async function codexLoad(){const iv=await _idbGet();if(iv){const lib=codexUnwrap(iv);if(lib)return{data:lib,source:'codex (idb)',entries:codexCount(lib)};}let best=null;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k);if(!v||(v[0]!=='{'&&v[0]!=='['))continue;let o;try{o=JSON.parse(v);}catch(e){continue;}const lib=codexUnwrap(o);if(!lib)continue;const c={lib,entries:codexCount(lib),stamp:codexStamp(o,lib)};if(!best||c.entries>best.entries||(c.entries===best.entries&&c.stamp>best.stamp))best={...c,key:k};}return best?{data:best.lib,source:best.key,entries:best.entries}:null;}
+function codexSaveSnapshot(lib){_idbPut(lib);try{localStorage.setItem(CODEX_SHARED_CACHE,JSON.stringify({at:Date.now(),data:lib}));}catch(e){}CODEX_LEGACY_CACHES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});return true;}
+/* ===== end shared block ===== */
+let library=null;
+function refreshCodexChip(){
+  const chip=$('#codexChip'), txt=$('#codexTxt');
+  if(library){ chip.classList.add('live'); txt.textContent=countEntries(library).toLocaleString()+' entries'; }
+  else { chip.classList.remove('live'); txt.textContent='No Codex data'; }
+  const gb=$('#genBtn'); if(gb) gb.disabled=!library;
+}
+function countEntries(l){return l.collections.reduce((n,c)=>n+(Array.isArray(c.entries)?c.entries.length:0),0);}
+async function detectCodex(){ const r=await codexLoad(); library=r?r.data:null; refreshCodexChip(); renderEmpty(); }
+
+/* ---- list resolution ---- */
+function allCols(){return library?library.collections.filter(c=>c&&Array.isArray(c.entries)):[];}
+function findList(cands){
+  const cols=allCols();
+  for(const cand of cands){const lc=cand.toLowerCase();const m=cols.find(c=>String(c.name||'').toLowerCase()===lc);if(m)return m;}
+  for(const cand of cands){const lc=cand.toLowerCase();const m=cols.find(c=>{const n=String(c.name||'').toLowerCase();return n.includes(lc)||lc.includes(n);});if(m)return m;}
+  return null;
+}
+function namesOf(list){return list?list.entries.map(e=>e.name):[];}
+function poolNames(cands){
+  const cols=allCols(); const out=[];
+  cands.forEach(cand=>{ const lc=cand.toLowerCase(); const m=cols.find(c=>String(c.name||'').toLowerCase()===lc); if(m) out.push(...m.entries.map(e=>e.name)); });
+  return out;
+}
+function tagPool(listName,tag){ const c=findList([listName]); if(!c)return []; return c.entries.filter(e=>(e.tags||[]).includes(tag)).map(e=>e.name); }
+
+/* ---- catalog (priced) content: names come from the Codex, prices from PRICEBOOK/defaults ---- */
+const CATALOG_LISTS={
+  weapons:['Simple Weapons','Martial Weapons'], armor:['Armor'], tools:['Tools'],
+  instruments:['Musical Instruments'], gear:['Other Adventuring Gear'], misc:['Misc. Random Item'],
+  packs:['Equipment Packs'], curios:['Curios & Trinkets'], books:['Books'], poisons:['Poisons'],
+  mounts:['Mounts'], tack:['Tack & Harness'], dragonshards:['Dragonshards'], drink:['Alcohol'],
+  food:['Food (Small Portion 1)','Food (Medium Portion 2)','Food (Hearty Portion 4)'],
+  food_small:['Food (Small Portion 1)'], food_medium:['Food (Medium Portion 2)'], food_hearty:['Food (Hearty Portion 4)'],
+};
+function catalogPool(catKey){ return poolNames(CATALOG_LISTS[catKey]||[]); }
+
+/* ---- magic items / potions / spells, by rarity or level ---- */
+const MAGIC_LISTS={
+  common:['Common Wondrous Items'], uncommon:['Uncommon Wondrous Items'],
+  rare:['Rare Wondrous Items','Rare Magic Items Misc.'], veryrare:['Very Rare Wondrous Items'],
+  legendary:['Legendary Wondrous Items','Legendary Magic Weapons'], artifact:['Artifacts'],
+};
+function magicPool(rarity){ return poolNames(MAGIC_LISTS[rarity]||[]); }
+const POTION_LISTS={common:['Common Potions'],uncommon:['Uncommon Potions'],rare:['Rare Potions'],veryrare:['Very Rare Potions']};
+function potionPool(rarity){ return poolNames(POTION_LISTS[rarity]||[]); }
+const SPELL_LVL_NAMES=['Cantrip','1st Lvl','2nd Lvl','3rd Lvl','4th Lvl','5th Lvl','6th Lvl','7th Lvl','8th Lvl','9th Lvl'];
+function spellPool(level){ return namesOf(findList([SPELL_LVL_NAMES[level]])); }
+
+/* ---- shop naming, proprietors, atmosphere ---- */
+function adjPool(){ return namesOf(findList(['Shop Adjectives'])); }
+function nounPool(){ return poolNames(['Shop Nouns','Shop Nouns \u2014 Creatures & Colors']); }
+function styleNounPool(style){ return tagPool('Shop Style Nouns', style); }
+function shopNounPool(style){ return tagPool('Shop Type Words', style); }
+function titlePool(style){ let p=tagPool('Shopkeeper Titles', style); if(!p.length) p=tagPool('Shopkeeper Titles','shop'); return p; }
+function firstNamePool(){ return namesOf(findList(['Proprietor First Names'])); }
+function surnamePool(){ return namesOf(findList(['Proprietor Surnames'])); }
+function racePool(){ return namesOf(findList(['Heritages'])); }
+const ATMO_LISTS={Exterior:'Atmosphere \u2014 Exterior',Sign:'Atmosphere \u2014 Sign',Interior:'Atmosphere \u2014 Interior',
+  Air:'Atmosphere \u2014 In the Air',Detail:'Atmosphere \u2014 Detail',Inside:'Atmosphere \u2014 Inside'};
+function atmoPool(tag){ return namesOf(findList([ATMO_LISTS[tag]||tag])); }
+
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const LS_OPT='shopgen_opts_v1', LS_STASH='shopgen_shops_v1', LS_GM='dnd_gm_mode';
+let opts = loadOpts();
+let gmMode = localStorage.getItem(LS_GM)==='1';
+let current = null;
+let stash = loadStash();
+function loadOpts(){
+  const def={loc:'tavern', quality:'3', stock:10, proprietor:true, atmosphere:true, forceMagic:false,
+    mounts:false, scrolls:false, scrollLvl:'1', scCount:3};
+  try{const s=JSON.parse(localStorage.getItem(LS_OPT)); return s?{...def,...s}:def;}catch{return def;}
+}
+function saveOpts(){localStorage.setItem(LS_OPT,JSON.stringify(opts));}
+function loadStash(){try{return JSON.parse(localStorage.getItem(LS_STASH))||[];}catch{return [];}}
+function saveStash(){localStorage.setItem(LS_STASH,JSON.stringify(stash));}
+
+/* =====================================================================
+   GENERATION
+   ===================================================================== */
+const QUALWORD={1:'Squalid',2:'Modest',3:'Comfortable',4:'Wealthy',5:'Aristocratic'};
+const QMULT={1:0.7,2:0.85,3:1,4:1.2,5:1.55};
+const QRAR={
+  1:[['common',88],['uncommon',100]],
+  2:[['common',62],['uncommon',95],['rare',100]],
+  3:[['common',38],['uncommon',76],['rare',96],['veryrare',100]],
+  4:[['common',16],['uncommon',52],['rare',83],['veryrare',97],['legendary',100]],
+  5:[['common',6],['uncommon',32],['rare',66],['veryrare',90],['legendary',100]],
+};
+function weightedRarity(table){ const r=d100(); for(const [name,max] of table) if(r<=max) return name; return table[table.length-1][0]; }
+function magicPrice(rar){
+  let p;
+  switch(rar){
+    case 'common': p=50+d(50); break;
+    case 'uncommon': p=100+d(400); break;
+    case 'rare': p=500+d(4500); break;
+    case 'veryrare': p=5000+d(15000); break;
+    case 'legendary': p=25000+d(25000); break;
+    default: p=0;
+  }
+  return p;
+}
+function niceRound(n){
+  if(n<=0) return 0;
+  if(n<1) return Math.round(n*100)/100;
+  if(n<10) return Math.round(n*2)/2;
+  if(n<100) return Math.round(n/5)*5;
+  if(n<1000) return Math.round(n/10)*10;
+  return Math.round(n/50)*50;
+}
+function priceWithQuality(base){ return niceRound(base*QMULT[+opts.quality]*(0.9+Math.random()*0.25)); }
+function stockQty(price){
+  if(price<1) return d(8)+2;
+  if(price<5) return d(6)+1;
+  if(price<25) return d(4)+1;
+  if(price<100) return d(2);
+  return 1;
+}
+const rarityLabel=k=>({common:'Common',uncommon:'Uncommon',rare:'Rare',veryrare:'Very Rare',legendary:'Legendary',artifact:'Artifact'}[k]||k);
+
+/* build a single inventory item of a given category */
+const CAT_DEFAULT_PRICE={weapons:15,armor:50,tools:20,instruments:20,gear:2,misc:5,packs:15,curios:5,books:25,poisons:100,mounts:50,tack:10,dragonshards:40};
+const DRINK_TIER_WEIGHTS=[[1,41],[3,51],[4,77],[6,100]];
+function makeItem(catKey, loc){
+  const q=+opts.quality;
+  if(catKey==='magic'){
+    let rar=weightedRarity(QRAR[q]); let pool=magicPool(rar);
+    if(!pool.length){ rar='uncommon'; pool=magicPool(rar); }
+    if(!pool.length) return null;
+    const nm=pick(pool); const price=rar==='artifact'?0:priceWithQuality(magicPrice(rar));
+    return {nm, rarity:rar, gp:price, qty:1};
+  }
+  if(catKey==='potions'){
+    let rar=weightedRarity(QRAR[q]); let pool=potionPool(rar);
+    if(!pool.length){ rar='uncommon'; pool=potionPool(rar); }
+    if(!pool.length) return null;
+    return {nm:pick(pool), rarity:rar, gp:priceWithQuality(POT_PRICE[rar]||150), qty:chance(0.5)?1:d(3)};
+  }
+  if(catKey==='dragonshards'){
+    const pool=catalogPool('dragonshards'); if(!pool.length) return null;
+    const nm=pick(pool); return {nm, gp:priceWithQuality(priceFor(nm,CAT_DEFAULT_PRICE.dragonshards)), qty:d(3)};
+  }
+  if(catKey==='drink'){
+    const pool=catalogPool('drink'); if(!pool.length) return null;
+    const nm=pick(pool); const tier=weightedRarity(DRINK_TIER_WEIGHTS); const base=DRINK_TIER_GP[tier]||0.2;
+    return {nm, gp:priceWithQuality(base), qty:d(8)+2};
+  }
+  if(catKey==='food'){
+    let pool = loc.foodBias ? catalogPool('food_'+loc.foodBias) : [];
+    if(!pool.length) pool=catalogPool('food');
+    if(!pool.length) return null;
+    const nm=pick(pool); const portion=loc.foodBias||'medium';
+    return {nm, gp:priceWithQuality(FOOD_PORTION[portion]||FOOD_PORTION.medium), qty:d(6)+2};
+  }
+  // generic priced catalogs — name from the Codex, price via PRICEBOOK with a category default fallback
+  const pool=catalogPool(catKey);
+  if(!pool.length) return null;
+  const nm=pick(pool);
+  const price=priceWithQuality(priceFor(nm, CAT_DEFAULT_PRICE[catKey]||5));
+  const qty = (catKey==='mounts')?1 : (catKey==='poisons'||catKey==='books')?d(2) : stockQty(price);
+  return {nm, gp:price, qty};
+}
+function makeScroll(){
+  let lvl;
+  if(opts.scrollLvl==='any') lvl=Math.floor(Math.random()*10);
+  else lvl=+opts.scrollLvl;
+  const pool=spellPool(lvl); if(!pool.length) return null;
+  const sp=pick(pool);
+  const name = lvl===0?`Spell Scroll \u00b7 ${sp} (cantrip)`:`Spell Scroll \u00b7 ${sp}`;
+  return {nm:name, lvl, gp:priceWithQuality(SCROLL_PRICE[lvl]), qty:chance(0.6)?1:2};
+}
+
+const CAT_META={
+  weapons:['Weapons','\u2694'], armor:['Armor','\uD83D\uDEE1'], tools:['Tools & Kits','\u2692'],
+  instruments:['Instruments','\uD83C\uDFB5'], gear:['Adventuring Gear','\u2699'], misc:['Sundries','\u25CD'],
+  packs:['Equipment Packs','\uD83C\uDF92'], food:['Food','\uD83C\uDF72'], drink:['Drink','\uD83C\uDF7A'],
+  curios:['Curios & Trinkets','\u2726'], books:['Books','\u25A4'], poisons:['Poisons & Illicit','\u2623'],
+  mounts:['Mounts','\uD83D\uDC0E'], tack:['Tack & Saddles','\uD83D\uDC0E'], magic:['Magic Items','\u2737'],
+  potions:['Potions','\u2697'], dragonshards:['Dragonshards','\u25C8'], scrolls:['Spell Scrolls','\u273A'],
+  atmo:['Atmosphere','\u2723'],
+};
+const CAT_ORDER=['atmo','weapons','armor','magic','potions','scrolls','dragonshards','instruments','tools','gear',
+  'packs','misc','curios','books','poisons','food','drink','mounts','tack'];
+
+function weightedCatList(loc){
+  const cats=loc.cats.map(c=>c.slice());
+  const has=k=>cats.some(c=>c[0]===k);
+  if(opts.forceMagic){ if(!has('magic')) cats.push(['magic',3]); if(!has('potions')) cats.push(['potions',2]); }
+  if(opts.mounts){ if(!has('mounts')) cats.push(['mounts',2]); if(!has('tack')) cats.push(['tack',1]); }
+  return cats;
+}
+function rollCategory(cats){
+  const total=cats.reduce((s,c)=>s+c[1],0); let r=Math.random()*total;
+  for(const [k,w] of cats){ r-=w; if(r<=0) return k; }
+  return cats[0][0];
+}
+
+function buildShop(preserveLocks, keepIdentity){
+  const locId = opts.loc==='random' ? pick(Object.keys(LOCS)) : opts.loc;
+  const loc=LOCS[locId];
+  const q=+opts.quality;
+  // identity
+  let name, owner;
+  if(keepIdentity && current){ name=current.meta.name; owner=current.meta.owner; }
+  else { owner=genOwner(loc.style); name=genName(loc.style, owner.first); }
+
+  // preserve locked items per category
+  const locks={};
+  if(preserveLocks && current){ current.cats.forEach(c=>{ c.items.forEach(it=>{ if(it.locked){ (locks[c.key]=locks[c.key]||[]).push({...it}); } }); }); }
+
+  // distribute stock
+  const cats=weightedCatList(loc);
+  const counts={};
+  const lockedTotal=Object.values(locks).reduce((s,a)=>s+a.length,0);
+  const slots=Math.max(0, opts.stock - lockedTotal);
+  for(let i=0;i<slots;i++){ const k=rollCategory(cats); counts[k]=(counts[k]||0)+1; }
+
+  // build grouped items
+  const byCat={};
+  Object.keys(locks).forEach(k=>{ byCat[k]=locks[k].map(x=>({...x})); });
+  for(const k in counts){
+    byCat[k]=byCat[k]||[];
+    for(let i=0;i<counts[k];i++){ const it=makeItem(k,loc); if(it) byCat[k].push(it); }
+  }
+  // spell scrolls (own category, explicit count)
+  if(opts.scrolls){
+    const kept=(locks.scrolls||[]).map(x=>({...x}));
+    const need=Math.max(0, opts.scCount - kept.length);
+    const fresh=[]; for(let i=0;i<need;i++){ const s=makeScroll(); if(s) fresh.push(s); }
+    byCat.scrolls=[...kept,...fresh];
+  }
+  // atmosphere
+  if(opts.atmosphere){
+    if(locks.atmo&&locks.atmo.length){
+      // keep locked lines, regenerate the rest to a full set of 6
+      const keptTags=locks.atmo.map(x=>x.atag);
+      const full=makeAtmo().filter(l=>!keptTags.includes(l.atag));
+      byCat.atmo=[...locks.atmo.map(x=>({...x})), ...full];
+    } else byCat.atmo=makeAtmo();
+  }
+
+  // assemble cats in display order
+  const outCats=[];
+  CAT_ORDER.forEach(k=>{
+    if(byCat[k]&&byCat[k].length){
+      const [label,icon]=CAT_META[k];
+      const cls = k==='atmo'?'atmo' : k==='scrolls'?'scroll' : '';
+      outCats.push({key:k,label,icon,cls,items:byCat[k]});
+    }
+  });
+
+  const total=outCats.reduce((s,c)=> s + (c.key==='atmo'?0:c.items.reduce((t,it)=>t+(it.gp||0)*(it.qty||1),0)), 0);
+  const itemCount=outCats.reduce((n,c)=> n + (c.key==='atmo'?0:c.items.length), 0);
+  const meta={loc:locId, locLabel:loc.label, group:loc.group, style:loc.style, quality:q,
+    qualityWord:QUALWORD[q], name, owner, total, itemCount, when:Date.now()};
+  return {meta,cats:outCats};
+}
+
+function generate(preserveLocks=false){ if(!library) return; current=buildShop(preserveLocks,false); renderShop(); }
+function newNameOnly(){ if(!current) return generate(false); const loc=LOCS[current.meta.loc]; current.meta.name=genName(loc.style,current.meta.owner.first); renderShop(); }
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function gp(n){ if(!n&&n!==0) return ''; if(n===0) return 'priceless'; if(n<1) return (Math.round(n*100)/100)+' gp'; return Math.round(n).toLocaleString()+' gp'; }
+
+function renderShop(){
+  if(!current){ renderEmpty(); return; }
+  const m=current.meta;
+  const prop = (opts.proprietor!==false && m.owner)
+    ? `<div class="prop">Run by <b>${esc(m.owner.full)}</b> \u00b7 ${esc(m.owner.race)} ${esc(m.owner.title)}</div>` : '';
+  let html=`
+    <div class="haul-head shop-head">
+      <div class="meta">
+        <div class="lab">${esc(m.group)}</div>
+        <h2 class="shopname">${esc(m.name)}</h2>
+        ${prop}
+        <div class="tags">
+          <span class="tag type">${esc(m.locLabel)}</span>
+          <span class="tag q${m.quality}">${esc(m.qualityWord)}</span>
+          <span class="tag">${m.itemCount} item${m.itemCount===1?'':'s'} in stock</span>
+        </div>
+      </div>
+      <div class="total">
+        <div class="v">${m.total? gp(Math.round(m.total)) : '\u2014'}</div>
+        <div class="l">stock value</div>
+      </div>
+      <div class="haul-actions">
+        <button class="btn" id="rerollAll"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg>Reroll unlocked</button>
+        <button class="btn ghost" id="newName"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>New name</button>
+        <button class="btn" id="saveStash"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM9 3v6h6"/></svg>Save to ledger</button>
+        <button class="btn ghost" id="copyHaul"><svg viewBox="0 0 24 24"><path d="M9 9h10v12H9zM5 15V3h10"/></svg>Copy text</button>
+      </div>
+    </div>
+    <div class="cards">`;
+  current.cats.forEach((c,ci)=>{
+    html+=`<div class="card ${c.cls}" style="animation-delay:${ci*40}ms">
+      <div class="ch"><span class="ico">${c.icon}</span><h4>${esc(c.label)}</h4>
+        <button class="reroll" data-cat="${c.key}" title="Reroll this section"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg></button>
+      </div><ul>`;
+    c.items.forEach((it,ii)=>{ html+=renderItem(c,it,ci,ii); });
+    html+=`</ul></div>`;
+  });
+  html+=`</div>`;
+  $('#resultArea').innerHTML=html;
+  bindHaulEvents();
+}
+
+function renderItem(c,it,ci,ii){
+  const locked=it.locked?'locked':'';
+  if(c.key==='atmo'){
+    return `<li class="${locked}" data-ci="${ci}" data-ii="${ii}">
+      <span class="atag">${esc(it.atag)}</span>
+      <span class="nm">${esc(it.nm)}</span>
+      <button class="mini lock" title="Lock / unlock"><svg viewBox="0 0 24 24"><path d="${it.locked?'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z':'M7 11V7a5 5 0 0 1 9.9-1M5 11h14v10H5z'}"/></svg></button>
+      <button class="mini one" title="Reroll just this"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg></button>
+    </li>`;
+  }
+  let left='', right='';
+  if(c.key==='magic'||c.key==='potions'){
+    left=`<span class="pip ${it.rarity}"></span>`;
+  }
+  const stock = it.qty>1 ? `<span class="stock">\u00d7${it.qty}</span>` : '';
+  if(c.key==='scrolls'){ right=`<span class="lvl-tag">${it.lvl===0?'Cantrip':'Lvl '+it.lvl}</span><span class="gp">${gp(it.gp)}</span>`; }
+  else right=`${stock}<span class="gp">${gp(it.gp)}</span>`;
+  return `<li class="${locked}" data-ci="${ci}" data-ii="${ii}">
+      ${left}
+      <span class="nm">${esc(it.nm)}</span>
+      ${right}
+      <button class="mini lock" title="Lock / unlock"><svg viewBox="0 0 24 24"><path d="${it.locked?'M7 11V7a5 5 0 0 1 10 0v4M5 11h14v10H5z':'M7 11V7a5 5 0 0 1 9.9-1M5 11h14v10H5z'}"/></svg></button>
+      <button class="mini one" title="Reroll just this"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></svg></button>
+    </li>`;
+}
+
+function renderEmpty(){
+  if(current) return;
+  if(!library){
+    $('#resultArea').innerHTML=`<div class="empty"><div class="crest">\ud83d\udcd6</div>
+      <h2>Connect the Codex first</h2>
+      <p>This generator names, prices, and stocks every shop from the Codex \u2014 proprietor names, atmosphere, and every catalog. Served alongside the Codex it loads automatically; as a loose <code>file://</code> page, hit <strong>Load Codex</strong> above and choose the file from the Codex\u2019s <strong>Export</strong>.</p></div>`;
+    return;
+  }
+  $('#resultArea').innerHTML=`<div class="empty"><div class="crest">\u2696</div>
+    <h2>The street awaits a shop</h2>
+    <p>Pick a location type and a quality, choose what to stock, and open the doors. You\u2019ll get a name, a proprietor, priced inventory keyed to the place, and its atmosphere. Lock what you like, reroll the rest, and save shops to your ledger.</p></div>`;
+}
+
+function rerollOne(ci,ii){
+  const c=current.cats[ci]; const it=c.items[ii]; if(it.locked) return;
+  let fresh;
+  if(c.key==='atmo') fresh=makeAtmoLine(it.atag);
+  else if(c.key==='scrolls') fresh=makeScroll()||it;
+  else fresh=makeItem(c.key, LOCS[current.meta.loc])||it;
+  if(fresh){ current.cats[ci].items[ii]={...fresh}; recalc(); renderShop(); }
+}
+function rerollCat(key){
+  const ci=current.cats.findIndex(c=>c.key===key); if(ci<0)return;
+  const c=current.cats[ci];
+  const locked=c.items.filter(it=>it.locked);
+  const loc=LOCS[current.meta.loc];
+  let fresh=[];
+  if(key==='atmo'){ const tags=locked.map(x=>x.atag); fresh=makeAtmo().filter(l=>!tags.includes(l.atag)); }
+  else if(key==='scrolls'){ const need=Math.max(0,opts.scCount-locked.length); for(let i=0;i<need;i++){ const s=makeScroll(); if(s) fresh.push(s); } }
+  else { const need=Math.max(1,c.items.length-locked.length); for(let i=0;i<need;i++){ const it=makeItem(key,loc); if(it) fresh.push(it); } }
+  current.cats[ci].items=[...locked, ...fresh];
+  recalc(); renderShop();
+}
+function recalc(){ current.meta.total=current.cats.reduce((s,c)=> s + (c.key==='atmo'?0:c.items.reduce((t,it)=>t+(it.gp||0)*(it.qty||1),0)), 0); }
+
+function bindHaulEvents(){
+  $('#rerollAll')&&($('#rerollAll').onclick=()=>generate(true));
+  $('#newName')&&($('#newName').onclick=newNameOnly);
+  $('#saveStash')&&($('#saveStash').onclick=saveCurrent);
+  $('#copyHaul')&&($('#copyHaul').onclick=copyHaul);
+  $$('.card .reroll').forEach(b=>b.onclick=()=>rerollCat(b.dataset.cat));
+  $$('.card li').forEach(li=>{
+    const ci=+li.dataset.ci, ii=+li.dataset.ii;
+    li.querySelector('.lock').onclick=e=>{e.stopPropagation(); current.cats[ci].items[ii].locked=!current.cats[ci].items[ii].locked; renderShop();};
+    li.querySelector('.one').onclick=e=>{e.stopPropagation(); rerollOne(ci,ii);};
+  });
+}
+
+function copyHaul(){
+  if(!current)return; const m=current.meta;
+  let t=`${m.name}\n${m.locLabel} \u00b7 ${m.qualityWord}\n`;
+  if(opts.proprietor!==false&&m.owner) t+=`Proprietor: ${m.owner.full} (${m.owner.race} ${m.owner.title})\n`;
+  if(m.total) t+=`Stock value: ${gp(Math.round(m.total))}\n`;
+  t+='\n';
+  current.cats.forEach(c=>{
+    t+=`${c.label}:\n`;
+    c.items.forEach(it=>{
+      if(c.key==='atmo'){ t+=` \u2022 [${it.atag}] ${it.nm}\n`; return; }
+      let line=' \u2022 '+it.nm;
+      if(it.qty>1) line+=` \u00d7${it.qty}`;
+      if(it.rarity) line+=` [${rarityLabel(it.rarity)}]`;
+      if(it.lvl!==undefined) line+=` (${it.lvl===0?'cantrip':'lvl '+it.lvl})`;
+      if(it.gp||it.gp===0) line+=` \u2014 ${gp(it.gp)}${it.qty>1?' ea':''}`;
+      t+=line+'\n';
+    });
+    t+='\n';
+  });
+  navigator.clipboard.writeText(t.trim()).then(()=>toast('Shop copied to clipboard.'),()=>toast('Copy failed.'));
+}
+
+/* =====================================================================
+   STASH (saved shops)
+   ===================================================================== */
+function saveCurrent(){
+  if(!current)return;
+  const id='shop_'+Date.now().toString(36);
+  stash.unshift({id,name:current.meta.name,meta:current.meta,cats:current.cats});
+  saveStash(); renderStash(); toast('Saved to ledger.');
+}
+function renderStash(){
+  const el=$('#stashList');
+  if(!stash.length){ el.innerHTML=`<div class="stash-empty">No saved shops yet \u2014 open one and hit \u201cSave to ledger\u201d.</div>`; return; }
+  el.innerHTML=stash.map(s=>{
+    return `<div class="si" data-id="${s.id}">
+      <button class="del" data-del="${s.id}" title="Delete">\u00d7</button>
+      <div class="nm">${esc(s.name)}</div>
+      <div class="sub">${esc(s.meta.locLabel)} \u00b7 ${s.meta.itemCount||0} items</div>
+      <div class="v">${s.meta.total?gp(Math.round(s.meta.total)):'\u2014'}</div>
+    </div>`;
+  }).join('');
+  $$('#stashList .si').forEach(si=>{
+    si.onclick=e=>{ if(e.target.dataset.del)return; const s=stash.find(x=>x.id===si.dataset.id); if(s){ current=JSON.parse(JSON.stringify(s)); renderShop(); window.scrollTo({top:0,behavior:'smooth'}); } };
+  });
+  $$('#stashList .del').forEach(b=>b.onclick=e=>{ e.stopPropagation(); stash=stash.filter(x=>x.id!==b.dataset.del); saveStash(); renderStash(); toast('Deleted.'); });
+}
+
+/* =====================================================================
+   CONTROL WIRING
+   ===================================================================== */
+function buildLocSelect(){
+  const sel=$('#locSel');
+  const groups={};
+  Object.entries(LOCS).forEach(([id,l])=>{ (groups[l.group]=groups[l.group]||[]).push([id,l.label]); });
+  let html=`<option value="random">\u2014 Random location \u2014</option>`;
+  Object.keys(groups).forEach(g=>{
+    html+=`<optgroup label="${esc(g)}">`;
+    groups[g].forEach(([id,label])=>{ html+=`<option value="${id}">${esc(label)}</option>`; });
+    html+=`</optgroup>`;
+  });
+  sel.innerHTML=html;
+}
+function syncControls(){
+  $('#locSel').value=opts.loc;
+  $('#qualSel').value=opts.quality;
+  $('#stVal').textContent=opts.stock;
+  $('#scVal').textContent=opts.scCount;
+  $('#scrollLvl').value=opts.scrollLvl;
+  $('#scrollOpts').style.display=opts.scrolls?'block':'none';
+  $$('.tog').forEach(t=>t.classList.toggle('on',!!opts[t.dataset.key]));
+}
+$('#locSel').onchange=e=>{ opts.loc=e.target.value; saveOpts(); };
+$('#randLoc').onclick=()=>{ opts.loc='random'; saveOpts(); syncControls(); generate(false); };
+$('#qualSel').onchange=e=>{ opts.quality=e.target.value; saveOpts(); };
+$('#scrollLvl').onchange=e=>{ opts.scrollLvl=e.target.value; saveOpts(); };
+$('#stMinus').onclick=()=>{ opts.stock=Math.max(2,opts.stock-1); $('#stVal').textContent=opts.stock; saveOpts(); };
+$('#stPlus').onclick=()=>{ opts.stock=Math.min(40,opts.stock+1); $('#stVal').textContent=opts.stock; saveOpts(); };
+$('#scMinus').onclick=()=>{ opts.scCount=Math.max(1,opts.scCount-1); $('#scVal').textContent=opts.scCount; saveOpts(); };
+$('#scPlus').onclick=()=>{ opts.scCount=Math.min(12,opts.scCount+1); $('#scVal').textContent=opts.scCount; saveOpts(); };
+$$('.tog').forEach(t=>t.onclick=()=>{ opts[t.dataset.key]=!opts[t.dataset.key]; saveOpts(); syncControls(); });
+$('#genBtn').onclick=()=>generate(false);
+
+/* GM mode */
+function applyGM(){ document.body.classList.toggle('gm-mode',gmMode); $('#gmSwitch').classList.toggle('on',gmMode); }
+$('#gmSwitch').onclick=()=>{ gmMode=!gmMode; localStorage.setItem(LS_GM,gmMode?'1':'0'); applyGM(); };
+
+/* Codex load */
+$('#loadCodexBtn').onclick=()=>$('#codexFile').click();
+$('#codexFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const json=JSON.parse(r.result);
+    const lib=codexUnwrap(json);
+    if(!lib){ toast('That isn\u2019t a Codex export.'); return; }
+    codexSaveSnapshot(lib);
+    detectCodex();
+    toast('Codex loaded \u00b7 '+countEntries(lib).toLocaleString()+' entries.');
+  }catch(err){ toast('Could not read that file as a Codex.'); } };
+  r.readAsText(f); e.target.value='';
+});
+
+/* export / import saved shops */
+$('#exportBtn').onclick=()=>{
+  if(!stash.length){ toast('Ledger is empty.'); return; }
+  download(JSON.stringify({app:'shop-generator',version:1,exported:new Date().toISOString(),stash},null,2),'shops.json');
+  toast('Shops exported.');
+};
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const dat=JSON.parse(r.result); const arr=dat.stash||(Array.isArray(dat)?dat:[]);
+    let n=0; arr.forEach(s=>{ if(s&&s.cats){ s.id=s.id||'shop_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); stash.push(s); n++; } });
+    saveStash(); renderStash(); toast('Imported '+n+' shop'+(n===1?'':'s')+'.');
+  }catch(err){ toast('Could not read that file.'); } };
+  r.readAsText(f); e.target.value='';
+});
+
+/* helpers */
+function download(text,name){ const b=new Blob([text],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
+let toastT; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400); }
+
+/* keyboard */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;
+  const k=e.key.toLowerCase();
+  if(e.code==='Space'||k==='g'){ e.preventDefault(); generate(false); }
+  else if(k==='l'){ e.preventDefault(); generate(true); }
+  else if(k==='n'){ e.preventDefault(); newNameOnly(); }
+});
+
+/* init */
+buildLocSelect(); syncControls(); applyGM(); detectCodex(); renderStash(); renderEmpty();
+</script>
+</body>
+</html>
