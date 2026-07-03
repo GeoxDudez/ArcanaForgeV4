@@ -9,6 +9,6 @@
    Never put the service_role key here or anywhere in the site.
    ===================================================================== */
 window.ARCANAFORGE_SUPABASE = {
-  SUPABASE_URL: "https://zquqrvbodscxjfhyivnd.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable__ZQ2Z8NREu7MQQ9sRh3jgQ_VAUCaOe6"
+  SUPABASE_URL: "PASTE_YOUR_SUPABASE_URL_HERE",
+  SUPABASE_ANON_KEY: "PASTE_YOUR_ANON_KEY_HERE"
 };
