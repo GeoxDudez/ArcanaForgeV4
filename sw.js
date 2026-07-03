@@ -11,7 +11,7 @@
 
    To force a clean refresh of everything after a big update, bump CACHE_VERSION.
    ===================================================================== */
-const CACHE_VERSION = 'arcanaforge-v5';
+const CACHE_VERSION = 'arcanaforge-v6';
 
 /* App shell precached on install. Missing files are skipped gracefully, so an
    optional tool you haven't added yet won't break the install. */
@@ -29,6 +29,7 @@ const SHELL = [
   './environment-generator.html',
   './campaign-notes.html',
   './group-inventory.html',
+  './campaign.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',

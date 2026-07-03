@@ -70,6 +70,11 @@ button{font-family:inherit;cursor:pointer;color:inherit;border:none;background:n
 }
 .tbtn:hover{border-color:var(--gold-dim);color:var(--txt);background:var(--panel-2)}
 .tbtn .ic{font-size:14px}
+/* campaign link button states */
+.tbtn .linkdot{width:8px;height:8px;border-radius:50%;background:var(--txt-faint);flex:none}
+.tbtn.linked{border-color:var(--gold-dim);color:var(--txt)}
+.tbtn.linked .linkdot{background:#8fce9a;box-shadow:0 0 8px rgba(143,206,154,.6)}
+.tbtn .linklabel{max-width:150px;overflow:hidden;text-overflow:ellipsis}
 /* GM toggle */
 .gm{display:flex;align-items:center;gap:9px;padding:7px 13px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
 .gm label{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--txt-faint)}
@@ -207,6 +212,9 @@ body.gm-mode .gm-only{display:inline-flex}
       </div>
     </div>
     <div class="spacer"></div>
+    <a class="tbtn" id="campaignBtn" href="campaign.html" title="Link this device to a shared campaign">
+      <span class="linkdot"></span><span class="linklabel">Campaign Link</span>
+    </a>
     <div class="gm" id="gmToggle" title="GM Mode reveals tools and notes meant for the Game Master only">
       <label>GM Mode</label>
       <div class="switch" id="gmSwitch"></div>
@@ -701,6 +709,21 @@ renderHub();
 detectCodex();
 // Re-scan when returning to the tab (e.g. after editing the Codex in another tab)
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detectCodex(); });
+</script>
+<script>
+/* Campaign Link button status — reads the link record saved by campaign.html.
+   No network, no Supabase libraries needed here; just a label + green dot. */
+(function(){
+  try{
+    var l = JSON.parse(localStorage.getItem('af_campaign_link'));
+    if (l && l.name){
+      var btn = document.getElementById('campaignBtn');
+      btn.classList.add('linked');
+      btn.querySelector('.linklabel').textContent = l.name;
+      btn.title = 'Linked to “' + l.name + '” as ' + (l.role === 'gm' ? 'Game Master' : 'Player') + ' — manage campaign link';
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
