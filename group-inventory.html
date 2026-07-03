@@ -463,6 +463,9 @@ select.finp option{background:var(--bg-2)}
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="arcanaforge-sync.js"></script>
 <script>
 /* =====================================================================
    THE TABLE — Group Inventory Tracker
@@ -472,15 +475,35 @@ const CODEX_KEY = 'codex-shared-cache-v1';
 
 const PLAYER_COLORS = ['#e3b352','#c62a30','#5fae6b','#9b8cff','#62b6c9','#c08457','#d6705a','#5aa9d6'];
 
+/* ---- campaign sync (shared mode) ----
+   When linked to a campaign, the whole inventory state lives in a shared
+   document that every member reads and writes; a local cache (separate from
+   solo data) keeps it fast and readable offline. Unlinked = solo, unchanged. */
+const SYNC_KEY   = 'group-inventory';
+const LINKED     = !!(window.AFSync && AFSync.isLinked());
+const ACTIVE_KEY = LINKED ? STORE_KEY + '::' + AFSync.link().campaign_id : STORE_KEY;
+const CLIENT_ID  = Math.random().toString(36).slice(2) + Date.now().toString(36);
+let pushT = null, syncReady = false;
+
+function pushRemote(){
+  if (!LINKED || !syncReady) return;
+  clearTimeout(pushT);
+  pushT = setTimeout(async () => {
+    try { await AFSync.putDoc(SYNC_KEY, data, CLIENT_ID); }
+    catch(e){ toast('⚠ Sync failed — changes saved on this device.'); }
+  }, 600);
+}
+
 /* ---- data ---- */
 let data = load();
 
 function load(){
-  try{ const r=localStorage.getItem(STORE_KEY); if(r){ const d=JSON.parse(r); if(d&&d.containers) return d; } }catch(e){}
+  try{ const r=localStorage.getItem(ACTIVE_KEY); if(r){ const d=JSON.parse(r); if(d&&d.containers) return d; } }catch(e){}
   return { containers:[], coin:{pp:0,gp:0,ep:0,sp:0,cp:0}, transactions:[], notes:[], players:[] };
 }
 function save(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }catch(e){ toast('⚠ Storage full.'); }
+  try{ localStorage.setItem(ACTIVE_KEY, JSON.stringify(data)); }catch(e){ toast('⚠ Storage full.'); }
+  pushRemote();
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function esc(s){ const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; }
@@ -911,8 +934,45 @@ function renderAll(){
 
 /* init */
 renderAll();
-// Pre-render transaction log since it's in the currency tab
-data.transactions; // ensure loaded
+
+/* ---- shared-mode bootstrap ---- */
+(async function(){
+  if (!LINKED) return;
+  const l = AFSync.link();
+
+  /* status chip in the header */
+  try{
+    const chip = document.createElement('span');
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:7px;margin-left:12px;padding:5px 12px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352;vertical-align:middle;';
+    chip.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#8fce9a;box-shadow:0 0 7px rgba(143,206,154,.7)"></span>' +
+                     (l.name ? l.name.replace(/[<>&]/g,'') : 'Linked');
+    chip.title = 'Shared with your campaign — changes sync live to everyone at the table';
+    document.querySelector('.brand h1').appendChild(chip);
+  }catch(e){}
+
+  try{
+    const doc = await AFSync.getDoc(SYNC_KEY);
+    if (doc && doc.content && doc.content.containers){
+      data = doc.content;                       // shared copy wins on load
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(data));
+      renderAll();
+    } else {
+      await AFSync.putDoc(SYNC_KEY, data, CLIENT_ID);   // first device seeds it
+    }
+    syncReady = true;
+
+    AFSync.onDoc(SYNC_KEY, row => {
+      if (row.client_id === CLIENT_ID) return;  // our own echo
+      data = row.content;
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(data));
+      renderAll();
+      toast('🔄 Inventory updated by the party');
+    });
+  }catch(e){
+    toast('⚠ Could not reach the campaign — working from this device\u2019s copy.');
+    syncReady = true;   // let later saves retry the push
+  }
+})();
 </script>
 </body>
 </html>

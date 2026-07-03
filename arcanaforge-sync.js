@@ -126,6 +126,32 @@
     if (error) throw error;
   }
 
+  /* ---------- whole-document sync (shared_docs table) ---------- */
+  async function getDoc(docKey) {
+    const l = link();
+    await ensureAuth();
+    const { data, error } = await db().from('shared_docs').select('*')
+      .eq('campaign_id', l.campaign_id).eq('doc_key', docKey).maybeSingle();
+    if (error) throw error;
+    return data; // null if the doc doesn't exist yet
+  }
+
+  async function putDoc(docKey, content, clientId) {
+    const l = link();
+    await ensureAuth();
+    const { error } = await db().from('shared_docs').upsert(
+      { campaign_id: l.campaign_id, doc_key: docKey, content, client_id: clientId || null },
+      { onConflict: 'campaign_id,doc_key' });
+    if (error) throw error;
+  }
+
+  function onDoc(docKey, cb) {
+    return onChange('shared_docs', payload => {
+      const row = payload.new;
+      if (row && row.doc_key === docKey) cb(row);
+    });
+  }
+
   /* Live updates: cb(payload) fires on any insert/update/delete visible to
      this user — RLS filtering means players never receive DM notes. */
   function onChange(table, cb) {
@@ -148,6 +174,7 @@
   window.AFSync = {
     configured, isLinked, isGM, link, ensureAuth,
     createCampaign, joinCampaign, leaveCampaign, members,
-    fetchAll, insert, update, remove, onChange
+    fetchAll, insert, update, remove, onChange,
+    getDoc, putDoc, onDoc
   };
 })();
