@@ -535,6 +535,7 @@ select.edit{appearance:none;cursor:pointer}
 .rc-mid{flex:1;min-width:0}
 .rc-label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
 .rc-label b{color:var(--gold-soft)}
+.rc-hid{border:1px solid #7e2226;color:#d98a8d;border-radius:99px;padding:1px 8px;font-size:9px;letter-spacing:.1em;margin-left:6px;vertical-align:1px}
 .rc-break{font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--txt);line-height:1.25}
 .rc-notation{font-size:10.5px;color:var(--txt-faint);letter-spacing:.03em}
 .rc-eq{font-family:var(--font-display);font-size:18px;color:var(--txt-faint)}
@@ -1919,7 +1920,7 @@ let dicePool={20:0,12:0,100:0,10:0,8:0,6:0,4:0};
 let advMode='normal';
 
 function loadRolls(){ try{ rollLog=JSON.parse(localStorage.getItem(ROLLKEY))||[]; }catch(e){ rollLog=[]; } }
-function saveRolls(){ localStorage.setItem(ROLLKEY, JSON.stringify(rollLog.slice(0,60))); }
+function saveRolls(){ if(window.__afRollSync && __afRollSync.linked) return; localStorage.setItem(ROLLKEY, JSON.stringify(rollLog.slice(0,60))); }
 
 const rollDie = s => 1 + Math.floor(Math.random()*s);
 const DIE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M12 2 21 7v10l-9 5-9-5V7z"/><path d="M12 2v20M3 7l9 5 9-5"/></svg>`;
@@ -1955,8 +1956,12 @@ function rollExpr(expr){
 
 function addRoll(entry){
   entry.id='r'+Math.random().toString(36).slice(2,8); entry.ts=Date.now();
-  rollLog.unshift(entry); if(rollLog.length>60) rollLog.length=60; saveRolls();
-  renderRollLog();
+  if (window.__afRollSync && __afRollSync.linked){
+    __afRollSync.push(entry);   // the card arrives via the table's live feed
+  } else {
+    rollLog.unshift(entry); if(rollLog.length>60) rollLog.length=60; saveRolls();
+    renderRollLog();
+  }
   toast(`${entry.labelPlain}: ${entry.total}`);
 }
 
@@ -2024,7 +2029,7 @@ function renderRollLog(){
       <div class="rc-box ${cls}">
         <div class="rc-die">${DIE_SVG}</div>
         <div class="rc-mid">
-          <div class="rc-label">${e.labelHTML}</div>
+          <div class="rc-label">${e.labelHTML}${e.hidden?' <span class="rc-hid">HIDDEN</span>':''}</div>
           <div class="rc-break">${e.breakdown}</div>
           <div class="rc-notation">${e.notation}</div>
         </div>
@@ -2768,6 +2773,80 @@ async function afPullCodex(){
     }
   });
 })();
+
+
+/* ===================================================================
+   SHARED GAME LOG — table-visible rolls via campaign_rolls.
+   Linked: the panel log becomes the whole table's feed (server drops
+   hidden rolls before they reach players). Unlinked: local, as before.
+   =================================================================== */
+var __afRollSync = { linked:false };
+(function(){
+  if(!(window.AFSync && AFSync.isLinked())) return;
+  var HIDEKEY='af-roll-hidden';
+  var amGM = AFSync.isGM();
+  var hiddenOn = amGM && localStorage.getItem(HIDEKEY)==='1';
+  var myId = null;
+  function rowToEntry(r){ return { rid:r.id, id:'r'+String(r.id).slice(0,6),
+    charName:(r.char_name||'—')+(r.roller_name?'  ·  '+r.roller_name:''),
+    labelHTML:esc(r.label||'Roll'), labelPlain:r.label||'Roll',
+    notation:r.notation||'', breakdown:r.breakdown||'', total:r.total,
+    crit:!!r.crit, fumble:!!r.fumble, hidden:!!r.hidden,
+    ts:new Date(r.created_at).getTime() }; }
+  __afRollSync.linked = true;
+  __afRollSync.push = function(entry){
+    AFSync.insert('campaign_rolls', {
+      roller_name:(AFSync.link().display_name||''),
+      char_name:String(entry.charName||''),
+      label:String(entry.labelPlain||'Roll'),
+      notation:String(entry.notation||''),
+      breakdown:String(entry.breakdown||''),
+      total:Number(entry.total)||0,
+      crit:!!entry.crit, fumble:!!entry.fumble,
+      hidden:hiddenOn
+    }).catch(function(){
+      rollLog.unshift(entry); if(rollLog.length>60) rollLog.length=60;
+      renderRollLog(); toast('⚠ Roll kept on this device — table sync failed');
+    });
+  };
+  (async function(){
+    try{
+      var u = await AFSync.ensureAuth(); myId = u.id;
+      var rows = await AFSync.fetchRecent('campaign_rolls', 40);
+      rollLog = rows.map(rowToEntry); renderRollLog();
+      AFSync.onChange('campaign_rolls', function(p){
+        var r = p['new']; if(!r || !r.id) return;
+        if(rollLog.some(function(e){ return e.rid===r.id; })) return;
+        rollLog.unshift(rowToEntry(r)); if(rollLog.length>60) rollLog.length=60;
+        renderRollLog();
+        if(r.roller_id!==myId)
+          toast('🎲 '+(r.roller_name||'Someone')+' rolled '+r.total+((r.label&&r.label!=='Roll')?' — '+r.label:''));
+      });
+    }catch(e){}
+  })();
+  if(amGM){
+    var head = document.querySelector('#dicePanel .dp-head');
+    if(head){
+      var b = document.createElement('button');
+      b.className='x'; b.id='dpHidden'; b.textContent='👁'; b.style.fontSize='14px';
+      var paint = function(){
+        b.style.color = hiddenOn ? '#ff4d54' : '';
+        b.title = hiddenOn
+          ? 'Hidden rolls ON — players see nothing; you still see them in the log'
+          : 'Hidden rolls OFF — the table sees your rolls. Click to roll hidden.';
+      };
+      paint();
+      b.onclick = function(){
+        hiddenOn = !hiddenOn;
+        localStorage.setItem(HIDEKEY, hiddenOn?'1':'0');
+        paint();
+        toast(hiddenOn ? '👁 Rolling hidden — GM eyes only' : 'Rolls visible to the table');
+      };
+      head.insertBefore(b, document.getElementById('dpClose'));
+    }
+  }
+})();
+
 </script>
 <script src="arcanaforge-quicksearch.js"></script>
 </body>

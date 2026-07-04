@@ -215,6 +215,10 @@ body.gm-mode .gm-only{display:inline-flex}
     <a class="tbtn" id="campaignBtn" href="campaign.html" title="Link this device to a shared campaign">
       <span class="linkdot"></span><span class="linklabel">Campaign Link</span>
     </a>
+    <div class="gm" id="gmToggle" title="GM Mode reveals tools and notes meant for the Game Master only">
+      <label>GM Mode</label>
+      <div class="switch" id="gmSwitch"></div>
+    </div>
     <button class="tbtn" id="exportBtn"><span class="ic">⬆</span> Export</button>
     <button class="tbtn" id="importBtn"><span class="ic">⬇</span> Import</button>
     <input type="file" id="fileImport" accept="application/json" hidden>
@@ -326,7 +330,6 @@ const DEFAULT_TOOLS = {
   tracker:   {name:'Initiative Tracker', icon:'⚔', accent:'#c62a30', kind:'tool', status:'ready',   path:'initiative-tracker.html', desc:'Two-screen combat tracker — GM screen plus a clean player view, with HP, conditions and death saves.'},
   character: {name:'Character Sheets',   icon:'🛡', accent:'#5fae6b', kind:'tool', status:'ready',   path:'character-sheets.html',   desc:'Live, customizable player sheets with auto-calculated math, drag-to-reorder panels and GM grants.'},
   npcgen:    {name:'NPC Generator',      icon:'🎭', accent:'#9b8cff', kind:'gen',  status:'ready',   path:'npc-generator.html',      desc:'Roll a full NPC — names, species, profession, traits, stats, purse and inventory — straight from Codex lists.'},
-  customgen: {name:'Generator Foundry',  icon:'⚒', accent:'#e3b352', kind:'gen',  status:'ready',   path:'custom-generators.html',  desc:'Forge your own generators from any Codex lists — then export them to share with other GMs, or import theirs.'},
   lootgen:   {name:'Loot Generator',     icon:'💰', accent:'#e3b352', kind:'gen',  status:'ready',   path:'loot-generator.html',     desc:'Build treasure hoards and reward tables from the Codex item, magic-item and currency lists.'},
   shopgen:   {name:'Shop Generator',     icon:'🏪', accent:'#62b6c9', kind:'gen',  status:'ready',   path:'shop-generator.html',     desc:'Stock a shop with a name, proprietor and inventory drawn from the Codex shop word-banks and items.'},
   dungeongen:{name:'Dungeon Generator',  icon:'🗝️', accent:'#c62a30', kind:'gen',  status:'ready',   path:'dungeon-generator.html',  desc:'Delve a full dungeon — theme, atmosphere, room-by-room detail, traps and connections — from the ArcanaForge library.'},
@@ -335,12 +338,12 @@ const DEFAULT_TOOLS = {
   groupinv:  {name:'Group Inventory',   icon:'🎒', accent:'#c08457', kind:'tool', status:'ready',   path:'group-inventory.html',    desc:'Shared party containers, group coin pool with transaction log, and a group notes feed every player can contribute to.'},
 };
 const ORDER_TOOLS = ['codex','tracker','character','campnotes','groupinv'];
-const ORDER_GENS  = ['npcgen','lootgen','shopgen','dungeongen','envgen','customgen'];
+const ORDER_GENS  = ['npcgen','lootgen','shopgen','dungeongen','envgen'];
 
 /* ---- state ---- */
 let cfg = loadConfig();
 let codex = null;            // {entries, lists, domains, breakdown:[{domain,count}], source}
-let gmMode = localStorage.getItem('af-view-role') !== 'player';   // GM view = GM powers
+let gmMode = !!cfg.gmMode;
 let pathEditId = null;
 
 /* Corrects paths from earlier versions of this dashboard that are saved in
@@ -635,7 +638,9 @@ $('#pathInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#pathSav
    ===================================================================== */
 function applyGM(){
   document.body.classList.toggle('gm-mode', gmMode);
+  $('#gmSwitch').classList.toggle('on', gmMode);
 }
+$('#gmToggle').onclick = ()=>{ gmMode=!gmMode; cfg.gmMode=gmMode; saveConfig(); applyGM(); toast(gmMode?'GM Mode on':'GM Mode off'); };
 
 /* =====================================================================
    EXPORT / IMPORT (dashboard config)
@@ -652,7 +657,7 @@ $('#fileImport').addEventListener('change', e=>{
   r.onload=()=>{ try{
     const d=JSON.parse(r.result);
     const c = d.config || d;
-    if(c && c.tools){ cfg=c; saveConfig(); applyGM(); renderTools(); renderHub(); toast('Dashboard config imported.'); }
+    if(c && c.tools){ cfg=c; gmMode=!!cfg.gmMode; saveConfig(); applyGM(); renderTools(); renderHub(); toast('Dashboard config imported.'); }
     else toast('That doesn’t look like a dashboard config.');
   }catch(err){ toast('Could not read that file.'); } };
   r.readAsText(f); e.target.value='';
@@ -720,97 +725,5 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detectC
   }catch(e){}
 })();
 </script>
-<script>
-/* =====================================================================
-   VIEW SYSTEM — Game Master view vs Player view
-   The view is a lens: player view trims the dashboard to the tools a
-   player uses. It is a convenience, not security — real secrecy (DM
-   notes, sheet permissions) is enforced server-side per campaign role.
-   ===================================================================== */
-(function(){
-  var ROLE_KEY = 'af-view-role';
-  var PLAYER_TOOLS = ['character','campnotes','groupinv','tracker'];
-
-  function role(){ return localStorage.getItem(ROLE_KEY); }
-  function linkRole(){
-    try{ var l = JSON.parse(localStorage.getItem('af_campaign_link')); return l && l.role; }catch(e){ return null; }
-  }
-
-  function applyView(){
-    var r = role();
-    var sw = document.getElementById('viewSwitch');
-    if (sw){
-      sw.querySelector('.vs-label').textContent = r === 'player' ? '🎲 Player View' : '⚒ GM View';
-      sw.title = 'Currently in ' + (r === 'player' ? 'Player' : 'GM') + ' view — click to switch';
-    }
-    if (r !== 'player') return;   // GM view = the dashboard as-is
-    /* hide the Codex hub panel and the Generators section */
-    var cp = document.getElementById('cpBody');  if (cp)  cp.closest('section').style.display = 'none';
-    var gg = document.getElementById('genGrid'); if (gg)  gg.closest('section').style.display = 'none';
-    var gt = document.getElementById('gmToggle'); if (gt) gt.style.display = 'none';
-    /* re-render the tools grid with player tools only */
-    try{
-      var keep = ORDER_TOOLS.filter(function(t){ return PLAYER_TOOLS.indexOf(t) !== -1; });
-      document.getElementById('toolGrid').innerHTML = keep.map(cardHTML).join('');
-      var head = document.querySelector('#toolGrid').closest('section').querySelector('.meta');
-      if (head) head.textContent = '— your side of the table';
-    }catch(e){}
-  }
-
-  function choose(r){
-    localStorage.setItem(ROLE_KEY, r);
-    var ov = document.getElementById('viewChooser');
-    if (ov) ov.remove();
-    location.reload();   // clean re-render in the chosen view
-  }
-
-  function showChooser(){
-    var rec = linkRole();   // recommend based on actual campaign role, if linked
-    var ov = document.createElement('div');
-    ov.id = 'viewChooser';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:999;background:rgba(10,12,17,.96);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;';
-    function card(r, icon, title, sub){
-      var isRec = rec && ((rec==='gm') === (r==='gm'));
-      return '<button data-role="'+r+'" style="flex:1;min-width:230px;max-width:330px;cursor:pointer;text-align:left;' +
-        'background:linear-gradient(180deg,#161922,#10131b);border:1px solid '+(isRec?'#9c7d3c':'#2a2f3d')+';border-radius:16px;padding:28px 26px;color:#e7e3d8;font-family:\'Spline Sans\',sans-serif;transition:border-color .2s">' +
-        (isRec ? '<div style="font-size:.68rem;letter-spacing:.22em;color:#e3b352;margin-bottom:10px">RECOMMENDED FOR YOU</div>' : '') +
-        '<div style="font-size:1.9rem;margin-bottom:10px">'+icon+'</div>' +
-        '<div style="font-family:\'Cinzel\',serif;font-weight:600;font-size:1.15rem;letter-spacing:.08em;color:#e3b352;margin-bottom:8px">'+title+'</div>' +
-        '<div style="font-size:.88rem;color:#b4b0a4;line-height:1.55">'+sub+'</div></button>';
-    }
-    ov.innerHTML =
-      '<div style="max-width:760px;width:100%;text-align:center">' +
-        '<img src="arcanaforge-mark.png" alt="" style="width:88px;margin:0 auto 14px;display:block">' +
-        '<div style="font-family:\'Cinzel\',serif;font-weight:600;font-size:1.5rem;letter-spacing:.1em;color:#e7e3d8;margin-bottom:6px">Who approaches the forge?</div>' +
-        '<div style="color:#b4b0a4;font-size:.92rem;margin-bottom:30px">Pick your side of the screen — you can switch anytime from the top bar.</div>' +
-        '<div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap">' +
-          card('gm','⚒','Game Master','Run the table. The full toolkit: Codex, generators, initiative, notes, and every shared sheet.') +
-          card('player','🎲','Player','Sit at the table. Your character sheets, the party board, and the group inventory.') +
-        '</div></div>';
-    ov.addEventListener('click', function(e){
-      var b = e.target.closest('[data-role]');
-      if (b) choose(b.dataset.role);
-    });
-    document.body.appendChild(ov);
-  }
-
-  /* topbar switcher, inserted before the Campaign Link button */
-  (function(){
-    var camp = document.getElementById('campaignBtn');
-    if (!camp) return;
-    var b = document.createElement('button');
-    b.className = 'tbtn'; b.id = 'viewSwitch';
-    b.innerHTML = '<span class="vs-label"></span>';
-    b.addEventListener('click', function(){
-      choose(role() === 'player' ? 'gm' : 'player');
-    });
-    camp.parentNode.insertBefore(b, camp);
-  })();
-
-  if (!role()) showChooser();
-  else applyView();
-})();
-</script>
-<script src="arcanaforge-quicksearch.js"></script>
 </body>
 </html>

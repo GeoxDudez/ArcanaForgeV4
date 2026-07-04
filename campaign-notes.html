@@ -325,7 +325,6 @@ select.finp option{background:var(--bg-2)}
     <button data-tab="arcs" onclick="switchTab('arcs')">Arcs <span class="tab-count" id="cnt-arcs">0</span></button>
     <button data-tab="threads" onclick="switchTab('threads')">Threads <span class="tab-count" id="cnt-threads">0</span></button>
     <button data-tab="notes" onclick="switchTab('notes')">Notes <span class="tab-count" id="cnt-notes">0</span></button>
-    <button data-tab="party" onclick="switchTab('party')">Party Board <span class="tab-count" id="cnt-party">0</span></button>
   </div>
 
   <!-- ===================== SESSIONS ===================== -->
@@ -393,51 +392,6 @@ select.finp option{background:var(--bg-2)}
         <div class="ico">📝</div>
         <p>Freeform notes for anything at the table — world lore, NPC secrets, session prep, rule reminders.</p>
       </div>
-    </div>
-  </div>
-
-  <style>
-    #tab-party{display:block;max-width:860px;margin:0 auto}
-    .pb-card{background:linear-gradient(180deg,var(--panel,#161922),#10131b);border:1px solid #2a2f3d;border-radius:14px;padding:18px 20px;margin-bottom:14px}
-    .pb-compose textarea{width:100%;min-height:74px;resize:vertical;background:#0d1017;border:1px solid #2a2f3d;border-radius:10px;color:#e7e3d8;font-family:inherit;font-size:.95rem;padding:11px 13px}
-    .pb-compose input{width:100%;background:#0d1017;border:1px solid #2a2f3d;border-radius:10px;color:#e7e3d8;font-family:inherit;font-size:.95rem;padding:10px 13px;margin-bottom:10px}
-    .pb-compose input:focus,.pb-compose textarea:focus{outline:none;border-color:#9c7d3c}
-    .pb-row{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
-    .pb-vis{display:flex;gap:6px}
-    .pb-vis button{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:99px;padding:6px 15px;font-size:.8rem;cursor:pointer;font-family:inherit;letter-spacing:.04em}
-    .pb-vis button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.08)}
-    .pb-vis button.dm.on{border-color:#7e2226;color:#d98a8d;background:rgba(198,42,48,.08)}
-    .pb-post{margin-left:auto;border:0;border-radius:10px;padding:10px 24px;font-weight:600;cursor:pointer;font-family:inherit;background:linear-gradient(180deg,#e3b352,#c9a24b);color:#0a0c11}
-    .pb-cancel{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:10px;padding:9px 16px;cursor:pointer;font-family:inherit}
-    .pb-note h4{font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.05em;color:#e3b352;margin-bottom:6px}
-    .pb-note .pb-body{white-space:pre-wrap;color:#d5d1c6;font-size:.94rem}
-    .pb-meta{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.78rem;color:#6f6c63}
-    .pb-meta .pb-dm{border:1px solid #7e2226;color:#d98a8d;border-radius:99px;padding:2px 10px;letter-spacing:.08em}
-    .pb-meta button{background:none;border:0;color:#6f6c63;cursor:pointer;font-size:.78rem;font-family:inherit;padding:2px 4px}
-    .pb-meta button:hover{color:#e3b352}
-    .pb-empty{text-align:center;color:#6f6c63;padding:44px 20px}
-    .pb-empty .ico{font-size:2rem;margin-bottom:10px}
-  </style>
-  <div id="tab-party" style="display:none">
-    <div id="pb-unlinked" class="pb-card pb-empty" style="display:none">
-      <div class="ico">🔗</div>
-      <p>The Party Board is shared with everyone at your table.<br>
-         <a href="campaign.html" style="color:#e3b352">Link a campaign</a> to start posting.</p>
-    </div>
-    <div id="pb-linked" style="display:none">
-      <div class="pb-card pb-compose">
-        <input type="text" id="pb-title" placeholder="Title (optional)" maxlength="120">
-        <textarea id="pb-body" placeholder="What does the party need to remember?"></textarea>
-        <div class="pb-row">
-          <div class="pb-vis" id="pb-vis" style="display:none">
-            <button type="button" id="pb-vis-party" class="on" onclick="pbSetVis('party')">Party</button>
-            <button type="button" id="pb-vis-dm" class="dm" onclick="pbSetVis('dm')">DM Only</button>
-          </div>
-          <button class="pb-cancel" id="pb-cancel" style="display:none" onclick="pbCancelEdit()">Cancel</button>
-          <button class="pb-post" id="pb-post" onclick="pbSubmit()">Post</button>
-        </div>
-      </div>
-      <div id="pb-feed"></div>
     </div>
   </div>
 
@@ -590,9 +544,6 @@ select.finp option{background:var(--bg-2)}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="arcanaforge-sync.js"></script>
 <script>
 /* =====================================================================
    THE TABLE — Campaign Notes & Story Tracker
@@ -631,7 +582,7 @@ function toast(msg){
 /* ---- tab switching ---- */
 function switchTab(tab){
   currentTab = tab;
-  ['sessions','arcs','threads','notes','party'].forEach(t=>{
+  ['sessions','arcs','threads','notes'].forEach(t=>{
     document.getElementById('tab-'+t).style.display = t===tab?'':'none';
     document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t===tab);
   });
@@ -1176,121 +1127,8 @@ function renderAll(){
   renderNotes();
 }
 
-/* ====================================================================
-   PARTY BOARD — shared notes (campaign_notes table)
-   Party notes are visible to every member; DM-only notes are filtered
-   out by the database itself and never reach a player's browser.
-   ==================================================================== */
-const PB_LINKED = !!(window.AFSync && AFSync.isLinked());
-let pbNotes = [], pbVis = 'party', pbEditingId = null, pbFetchT = null;
-
-function pbSetVis(v){
-  pbVis = v;
-  document.getElementById('pb-vis-party').classList.toggle('on', v==='party');
-  document.getElementById('pb-vis-dm').classList.toggle('on', v==='dm');
-}
-
-function pbFmt(ts){ try{ return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
-
-function pbRender(){
-  document.getElementById('cnt-party').textContent = pbNotes.length;
-  const feed = document.getElementById('pb-feed');
-  if (!pbNotes.length){
-    feed.innerHTML = '<div class="pb-card pb-empty"><div class="ico">📜</div><p>Nothing on the board yet. First post claims the top spot.</p></div>';
-    return;
-  }
-  const me = AFSync.link();
-  feed.innerHTML = pbNotes.map(n => {
-    const mine = n._mine, canEdit = mine || AFSync.isGM();
-    return `<div class="pb-card pb-note">
-      ${n.title ? `<h4>${esc(n.title)}</h4>` : ''}
-      <div class="pb-body">${esc(n.body)}</div>
-      <div class="pb-meta">
-        <span>${esc(n.author_name||'Someone')}</span><span>·</span><span>${pbFmt(n.created_at)}</span>
-        ${n.visibility==='dm' ? '<span class="pb-dm">DM ONLY</span>' : ''}
-        ${canEdit ? `<span style="margin-left:auto"></span>
-          <button onclick="pbEdit('${n.id}')">Edit</button>
-          <button onclick="pbDelete('${n.id}')">Delete</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function pbFetch(){
-  if (!PB_LINKED) return;
-  try{
-    const user = await AFSync.ensureAuth();
-    const rows = await AFSync.fetchAll('campaign_notes', 'created_at');
-    pbNotes = rows.reverse().map(n => ({ ...n, _mine: n.author_id === user.id }));
-    pbRender();
-  }catch(e){ toast('⚠ Could not load the Party Board.'); }
-}
-function pbFetchSoon(){ clearTimeout(pbFetchT); pbFetchT = setTimeout(pbFetch, 250); }
-
-async function pbSubmit(){
-  const title = document.getElementById('pb-title').value.trim();
-  const body  = document.getElementById('pb-body').value.trim();
-  if (!body){ toast('Write something first.'); return; }
-  const btn = document.getElementById('pb-post'); btn.disabled = true;
-  try{
-    if (pbEditingId){
-      await AFSync.update('campaign_notes', pbEditingId, { title, body, visibility: pbVis });
-      pbCancelEdit();
-    } else {
-      await AFSync.insert('campaign_notes',
-        { title, body, visibility: pbVis, author_name: AFSync.link().display_name || '' });
-      document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
-    }
-    pbFetch();
-  }catch(e){ toast('⚠ ' + (e.message || 'Post failed.')); }
-  btn.disabled = false;
-}
-
-function pbEdit(id){
-  const n = pbNotes.find(x=>x.id===id); if(!n) return;
-  pbEditingId = id;
-  document.getElementById('pb-title').value = n.title||'';
-  document.getElementById('pb-body').value = n.body||'';
-  if (AFSync.isGM()) pbSetVis(n.visibility);
-  document.getElementById('pb-post').textContent = 'Save';
-  document.getElementById('pb-cancel').style.display = '';
-  document.getElementById('pb-body').focus();
-}
-function pbCancelEdit(){
-  pbEditingId = null;
-  document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
-  pbSetVis('party');
-  document.getElementById('pb-post').textContent = 'Post';
-  document.getElementById('pb-cancel').style.display = 'none';
-}
-async function pbDelete(id){
-  if (!confirm('Remove this note from the board?')) return;
-  try{ await AFSync.remove('campaign_notes', id); pbFetch(); }
-  catch(e){ toast('⚠ Could not delete.'); }
-}
-
-(function pbInit(){
-  document.getElementById('pb-unlinked').style.display = PB_LINKED ? 'none' : '';
-  document.getElementById('pb-linked').style.display   = PB_LINKED ? '' : 'none';
-  if (!PB_LINKED) return;
-  const l = AFSync.link();
-  /* linked chip in the header */
-  try{
-    const chip = document.createElement('span');
-    chip.style.cssText = 'display:inline-flex;align-items:center;gap:7px;margin-left:12px;padding:5px 12px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352;vertical-align:middle;';
-    chip.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#8fce9a;box-shadow:0 0 7px rgba(143,206,154,.7)"></span>' + (l.name||'Linked').replace(/[<>&]/g,'');
-    chip.title = 'Party Board syncs live with your campaign';
-    document.querySelector('.brand h1').appendChild(chip);
-  }catch(e){}
-  /* GM sees the visibility toggle */
-  if (AFSync.isGM()) document.getElementById('pb-vis').style.display = '';
-  pbFetch();
-  AFSync.onChange('campaign_notes', pbFetchSoon);
-})();
-
 /* init */
 renderAll();
 </script>
-<script src="arcanaforge-quicksearch.js"></script>
 </body>
 </html>

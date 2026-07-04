@@ -126,6 +126,17 @@
     if (error) throw error;
   }
 
+
+  async function fetchRecent(table, limit) {
+    const l = link();
+    await ensureAuth();
+    const { data, error } = await db().from(table).select('*')
+      .eq('campaign_id', l.campaign_id)
+      .order('created_at', { ascending: false }).limit(limit || 40);
+    if (error) throw error;
+    return data;
+  }
+
   /* ---------- whole-document sync (shared_docs table) ---------- */
   async function getDoc(docKey) {
     const l = link();
@@ -174,7 +185,7 @@
   window.AFSync = {
     configured, isLinked, isGM, link, ensureAuth,
     createCampaign, joinCampaign, leaveCampaign, members,
-    fetchAll, insert, update, remove, onChange,
+    fetchAll, fetchRecent, insert, update, remove, onChange,
     getDoc, putDoc, onDoc
   };
 })();
