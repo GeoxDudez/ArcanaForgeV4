@@ -1753,8 +1753,9 @@ window.addEventListener('message', e=>{ if(e.data && e.data.type==='request' && 
 
 /* =====================================================================
    DICE ROLLER + GAME LOG — ported from the Character Codex
+   (initialized after DOM parse — its markup sits at the end of <body>)
    ===================================================================== */
-(function(){
+function __afInitRoller(){
   if (IS_PLAYER) return;
   var $d = function(q){ return document.querySelector(q); };
   var ROLLKEY='af-tracker-rolls';
@@ -1874,7 +1875,9 @@ window.addEventListener('message', e=>{ if(e.data && e.data.type==='request' && 
   });
   setInterval(function(){ if($d('#dicePanel').classList.contains('open')) renderRollLog(); }, 30000);
   loadRolls(); renderDiceGrid(); renderRollLog();
-})();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', __afInitRoller);
+else __afInitRoller();
 
 </script>
 
