@@ -568,6 +568,20 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
 .card-fields th{ text-align:left; color:var(--txt-dim); font-weight:600; padding:4px 12px 4px 0; vertical-align:top; white-space:nowrap; width:1%; }
 .card-fields td{ color:var(--txt); padding:4px 0; }
 .card-fields tr+tr th, .card-fields tr+tr td{ border-top:1px solid var(--line-soft); }
+
+/* ---- print / PDF: a clean paper copy of the open sheet ---- */
+@media print{
+  body{background:#fff !important;color:#111 !important}
+  body *{box-shadow:none !important;text-shadow:none !important}
+  .topbar,.sheet-bar,.dice-fab,.dice-panel,.toast,.afqs-bg,#rosterView{display:none !important}
+  #sheetView{display:block !important}
+  .panel,.card,[class*="panel"]{background:#fff !important;border:1px solid #bbb !important;color:#111 !important}
+  h1,h2,h3,h4,label,span,div,p,b{color:#111 !important}
+  input,textarea,select{background:#fff !important;color:#111 !important;border:1px solid #ccc !important;-webkit-appearance:none;appearance:none}
+  a{color:#111 !important;text-decoration:none}
+  @page{margin:12mm}
+}
+
 </style>
 </head>
 <body>
@@ -613,6 +627,7 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
     <span id="roChip" class="hidden" style="display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352"></span>
     <span class="spacer"></span>
     <button class="btn sm" id="shareBtn" style="display:none">Share to Campaign</button>
+    <button class="btn sm" id="printBtn" title="Print this sheet or save it as a PDF">🖨 Print</button>
     <button class="btn sm hidden" id="addPanelBtn">+ Add Panel</button>
     <button class="btn sm" id="customizeBtn">✥ Customize Layout</button>
     <button class="btn ghost sm" id="exportOneBtn">Export</button>
@@ -931,6 +946,7 @@ $('#customizeBtn').addEventListener('click', ()=>{
   $('#addPanelBtn').classList.toggle('hidden', !customizing);
 });
 $('#exportOneBtn').addEventListener('click', ()=> exportChars([current]));
+$('#printBtn').addEventListener('click', ()=>window.print());
 $('#deleteOneBtn').addEventListener('click', ()=>{
   if(confirm(`Delete "${current.name}"?`)){
     afHandleDelete(current.id);
@@ -2725,5 +2741,6 @@ async function afPullCodex(){
   });
 })();
 </script>
+<script src="arcanaforge-quicksearch.js"></script>
 </body>
 </html>
