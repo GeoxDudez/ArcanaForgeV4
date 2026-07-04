@@ -326,6 +326,7 @@ const DEFAULT_TOOLS = {
   tracker:   {name:'Initiative Tracker', icon:'⚔', accent:'#c62a30', kind:'tool', status:'ready',   path:'initiative-tracker.html', desc:'Two-screen combat tracker — GM screen plus a clean player view, with HP, conditions and death saves.'},
   character: {name:'Character Sheets',   icon:'🛡', accent:'#5fae6b', kind:'tool', status:'ready',   path:'character-sheets.html',   desc:'Live, customizable player sheets with auto-calculated math, drag-to-reorder panels and GM grants.'},
   npcgen:    {name:'NPC Generator',      icon:'🎭', accent:'#9b8cff', kind:'gen',  status:'ready',   path:'npc-generator.html',      desc:'Roll a full NPC — names, species, profession, traits, stats, purse and inventory — straight from Codex lists.'},
+  customgen: {name:'Generator Foundry',  icon:'⚒', accent:'#e3b352', kind:'gen',  status:'ready',   path:'custom-generators.html',  desc:'Forge your own generators from any Codex lists — then export them to share with other GMs, or import theirs.'},
   lootgen:   {name:'Loot Generator',     icon:'💰', accent:'#e3b352', kind:'gen',  status:'ready',   path:'loot-generator.html',     desc:'Build treasure hoards and reward tables from the Codex item, magic-item and currency lists.'},
   shopgen:   {name:'Shop Generator',     icon:'🏪', accent:'#62b6c9', kind:'gen',  status:'ready',   path:'shop-generator.html',     desc:'Stock a shop with a name, proprietor and inventory drawn from the Codex shop word-banks and items.'},
   dungeongen:{name:'Dungeon Generator',  icon:'🗝️', accent:'#c62a30', kind:'gen',  status:'ready',   path:'dungeon-generator.html',  desc:'Delve a full dungeon — theme, atmosphere, room-by-room detail, traps and connections — from the ArcanaForge library.'},
@@ -334,7 +335,7 @@ const DEFAULT_TOOLS = {
   groupinv:  {name:'Group Inventory',   icon:'🎒', accent:'#c08457', kind:'tool', status:'ready',   path:'group-inventory.html',    desc:'Shared party containers, group coin pool with transaction log, and a group notes feed every player can contribute to.'},
 };
 const ORDER_TOOLS = ['codex','tracker','character','campnotes','groupinv'];
-const ORDER_GENS  = ['npcgen','lootgen','shopgen','dungeongen','envgen'];
+const ORDER_GENS  = ['npcgen','lootgen','shopgen','dungeongen','envgen','customgen'];
 
 /* ---- state ---- */
 let cfg = loadConfig();
