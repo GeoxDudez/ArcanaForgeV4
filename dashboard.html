@@ -215,10 +215,6 @@ body.gm-mode .gm-only{display:inline-flex}
     <a class="tbtn" id="campaignBtn" href="campaign.html" title="Link this device to a shared campaign">
       <span class="linkdot"></span><span class="linklabel">Campaign Link</span>
     </a>
-    <div class="gm" id="gmToggle" title="GM Mode reveals tools and notes meant for the Game Master only">
-      <label>GM Mode</label>
-      <div class="switch" id="gmSwitch"></div>
-    </div>
     <button class="tbtn" id="exportBtn"><span class="ic">⬆</span> Export</button>
     <button class="tbtn" id="importBtn"><span class="ic">⬇</span> Import</button>
     <input type="file" id="fileImport" accept="application/json" hidden>
@@ -343,7 +339,7 @@ const ORDER_GENS  = ['npcgen','lootgen','shopgen','dungeongen','envgen'];
 /* ---- state ---- */
 let cfg = loadConfig();
 let codex = null;            // {entries, lists, domains, breakdown:[{domain,count}], source}
-let gmMode = !!cfg.gmMode;
+let gmMode = localStorage.getItem('af-view-role') !== 'player';   // GM view = GM powers
 let pathEditId = null;
 
 /* Corrects paths from earlier versions of this dashboard that are saved in
@@ -638,9 +634,7 @@ $('#pathInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#pathSav
    ===================================================================== */
 function applyGM(){
   document.body.classList.toggle('gm-mode', gmMode);
-  $('#gmSwitch').classList.toggle('on', gmMode);
 }
-$('#gmToggle').onclick = ()=>{ gmMode=!gmMode; cfg.gmMode=gmMode; saveConfig(); applyGM(); toast(gmMode?'GM Mode on':'GM Mode off'); };
 
 /* =====================================================================
    EXPORT / IMPORT (dashboard config)
@@ -657,7 +651,7 @@ $('#fileImport').addEventListener('change', e=>{
   r.onload=()=>{ try{
     const d=JSON.parse(r.result);
     const c = d.config || d;
-    if(c && c.tools){ cfg=c; gmMode=!!cfg.gmMode; saveConfig(); applyGM(); renderTools(); renderHub(); toast('Dashboard config imported.'); }
+    if(c && c.tools){ cfg=c; saveConfig(); applyGM(); renderTools(); renderHub(); toast('Dashboard config imported.'); }
     else toast('That doesn’t look like a dashboard config.');
   }catch(err){ toast('Could not read that file.'); } };
   r.readAsText(f); e.target.value='';
@@ -734,7 +728,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detectC
    ===================================================================== */
 (function(){
   var ROLE_KEY = 'af-view-role';
-  var PLAYER_TOOLS = ['character','campnotes','groupinv'];
+  var PLAYER_TOOLS = ['character','campnotes','groupinv','tracker'];
 
   function role(){ return localStorage.getItem(ROLE_KEY); }
   function linkRole(){

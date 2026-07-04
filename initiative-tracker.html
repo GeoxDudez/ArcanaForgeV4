@@ -567,6 +567,9 @@ body.player #playerView{display:flex}
 <input type="file" id="fileImport" accept="application/json,.json" hidden>
 <div id="condPop" class="cond-pop"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="arcanaforge-sync.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -1527,6 +1530,208 @@ if(IS_PLAYER){
 }
 /* GM answers a player's request for latest state */
 window.addEventListener('message', e=>{ if(e.data && e.data.type==='request' && !IS_PLAYER) broadcast(); });
+
+/* =====================================================================
+   CAMPAIGN LAYER — PC lookup from shared sheets, live encounter
+   broadcast to the campaign, and the table dice tray.
+   ===================================================================== */
+(function(){
+  var LINKED = !!(window.AFSync && AFSync.isLinked());
+  var ROLE = LINKED ? (AFSync.isGM() ? 'gm' : 'player') : null;
+  var LIVE_KEY = 'af-enc-live';
+
+  /* ---------- remote live view: a linked PLAYER at #player ---------- */
+  if (IS_PLAYER && ROLE === 'player'){
+    (async function(){
+      try{
+        var doc = await AFSync.getDoc('gm:encounter');
+        if (doc && doc.content && doc.content.combatants) applyIncoming(doc.content);
+        AFSync.onDoc('gm:encounter', function(row){
+          if (row.content && row.content.combatants) applyIncoming(row.content);
+        });
+      }catch(e){}
+    })();
+    return;                       // remote feed only — no GM features
+  }
+  if (IS_PLAYER) return;          // GM's own popup window — local sync only
+
+  /* ---------- linked player who opened the GM screen: offer live view ---------- */
+  if (ROLE === 'player'){
+    try{
+      var bn = document.createElement('div');
+      bn.style.cssText = 'max-width:1180px;margin:14px auto 0;padding:14px 18px;border:1px solid #9c7d3c;border-radius:14px;background:rgba(227,179,82,.06);display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:.92rem;color:#e7e3d8;';
+      bn.innerHTML = '<span>🔗 Linked to <b style="color:#e3b352">' +
+        (AFSync.link().name || 'your campaign').replace(/[<>&]/g,'') +
+        '</b> — when your GM runs a live encounter, you can watch the turn order here.</span>' +
+        '<button id="afLiveBtn" style="margin-left:auto;cursor:pointer;border:0;border-radius:10px;padding:10px 20px;font-weight:600;font-family:inherit;background:linear-gradient(180deg,#e3b352,#c9a24b);color:#0a0c11">▶ View live encounter</button>';
+      document.body.insertBefore(bn, document.body.firstChild);
+      document.getElementById('afLiveBtn').onclick = function(){
+        location.hash = '#player'; location.reload();
+      };
+    }catch(e){}
+  }
+
+  /* ---------- GM: PC lookup from shared campaign sheets ---------- */
+  if (ROLE === 'gm'){
+    var pcLib = [], pcT = null;
+    var dl = document.createElement('datalist'); dl.id = 'pcNameList';
+    document.body.appendChild(dl);
+
+    function pcOf(sheet){
+      var s = sheet.sheet || {};
+      var img = (typeof s.portrait === 'string' && s.portrait.length && s.portrait.length < 200000) ? s.portrait : '';
+      return { name: s.name || sheet.character_name || 'Adventurer',
+               maxHp: (s.hp && s.hp.max) || 10, ac: s.ac || 10,
+               level: s.level || 1, img: img };
+    }
+    async function pcFetch(){
+      try{
+        var rows = await AFSync.fetchAll('character_sheets', 'character_name');
+        pcLib = rows.map(pcOf);
+        dl.innerHTML = pcLib.map(function(p){ return '<option value="' + esc(p.name) + '">'; }).join('');
+      }catch(e){}
+    }
+    pcFetch();
+    AFSync.onChange('character_sheets', function(){ clearTimeout(pcT); pcT = setTimeout(pcFetch, 400); });
+
+    var aName = document.getElementById('aName'), aType = document.getElementById('aType');
+    function swapList(){ aName.setAttribute('list', aType.value === 'pc' ? 'pcNameList' : 'monNameList'); }
+    aType.addEventListener('change', swapList); swapList();
+
+    aName.addEventListener('input', function(){
+      if (aType.value !== 'pc') return;
+      var q = aName.value.trim().toLowerCase();
+      var hit = pcLib.find(function(p){ return p.name.toLowerCase() === q; });
+      if (!hit) return;
+      document.getElementById('aHp').value = hit.maxHp;
+      document.getElementById('aAc').value = hit.ac;
+      if (hit.img) document.getElementById('aImgUrl').value = hit.img;
+      gmToast('⚔ ' + hit.name + ' — Lv ' + hit.level + ' · HP ' + hit.maxHp + ' · AC ' + hit.ac + ' pulled from campaign sheet');
+    });
+  }
+
+  /* ---------- GM: live broadcast to the campaign ---------- */
+  if (ROLE === 'gm'){
+    var liveOn = localStorage.getItem(LIVE_KEY) === '1', pushT = null;
+
+    function projection(){
+      return {
+        title: state.title, round: state.round, activeId: state.activeId,
+        maskNames: false,
+        combatants: state.combatants.filter(function(c){ return !c.hidden; }).map(function(c){
+          var o = JSON.parse(JSON.stringify(c));
+          if (state.maskNames && c.type === 'enemy') o.name = 'Enemy';
+          return o;
+        })
+      };
+    }
+    function pushLive(){
+      if (!liveOn) return;
+      clearTimeout(pushT);
+      pushT = setTimeout(function(){
+        AFSync.putDoc('gm:encounter', projection()).catch(function(){});
+      }, 500);
+    }
+    var _broadcast = broadcast;
+    broadcast = function(){ _broadcast(); pushLive(); };
+
+    /* Player Display → menu: window (in person) or campaign live (online) */
+    var openBtn = document.getElementById('openPlayer');
+    function liveLabel(){ return '📡 Campaign Live: ' + (liveOn ? 'ON' : 'OFF'); }
+    function paintBtn(){ openBtn.innerHTML = (liveOn ? '<span style="color:#8fce9a">●</span> ' : '') + '🖥 Player Display'; }
+    paintBtn();
+
+    openBtn.onclick = function(e){
+      var old = document.getElementById('afDispMenu');
+      if (old){ old.remove(); return; }
+      var r = openBtn.getBoundingClientRect();
+      var m = document.createElement('div');
+      m.id = 'afDispMenu';
+      m.style.cssText = 'position:fixed;top:' + (r.bottom + 6) + 'px;left:' + Math.max(8, r.right - 300) + 'px;z-index:400;width:300px;background:#161922;border:1px solid #2a2f3d;border-radius:12px;box-shadow:0 18px 48px rgba(0,0,0,.55);overflow:hidden;font-size:.9rem;';
+      m.innerHTML =
+        '<button data-a="win" style="display:block;width:100%;text-align:left;background:none;border:0;color:#e7e3d8;padding:13px 16px;cursor:pointer;font-family:inherit">🪟 Open display window<br><span style="color:#6f6c63;font-size:.78rem">For a second screen at an in-person table</span></button>' +
+        '<button data-a="live" style="display:block;width:100%;text-align:left;background:none;border:0;color:#e7e3d8;padding:13px 16px;cursor:pointer;font-family:inherit;border-top:1px solid #21252f">' + liveLabel() + '<br><span style="color:#6f6c63;font-size:.78rem">Players open Initiative Tracker → View live encounter</span></button>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function(ev){
+        var b = ev.target.closest('[data-a]'); if (!b) return;
+        if (b.dataset.a === 'win'){
+          var url = location.href.split('#')[0] + '#player';
+          playerWin = window.open(url, 'ttrpgPlayer', 'width=1280,height=800');
+          setTimeout(broadcast, 400);
+        } else {
+          liveOn = !liveOn;
+          localStorage.setItem(LIVE_KEY, liveOn ? '1' : '0');
+          if (liveOn){ AFSync.putDoc('gm:encounter', projection()).catch(function(){}); gmToast('📡 Live — linked players can watch the encounter'); }
+          else gmToast('Campaign live is off');
+          paintBtn();
+        }
+        m.remove();
+      });
+      setTimeout(function(){
+        document.addEventListener('click', function close(ev){
+          if (!m.contains(ev.target) && ev.target !== openBtn){ m.remove(); document.removeEventListener('click', close); }
+        });
+      }, 0);
+    };
+  }
+
+  /* ---------- dice tray (GM screen) ---------- */
+  (function(){
+    var hist = [];
+    var fab = document.createElement('button');
+    fab.id = 'afDiceFab';
+    fab.textContent = '🎲';
+    fab.title = 'Dice tray';
+    fab.style.cssText = 'position:fixed;right:22px;bottom:22px;z-index:300;width:54px;height:54px;border-radius:50%;border:1px solid #9c7d3c;background:linear-gradient(180deg,#161922,#10131b);color:#e3b352;font-size:1.5rem;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+    document.body.appendChild(fab);
+
+    var panel = document.createElement('div');
+    panel.style.cssText = 'position:fixed;right:22px;bottom:86px;z-index:300;width:290px;display:none;background:#161922;border:1px solid #2a2f3d;border-radius:14px;padding:16px;box-shadow:0 18px 48px rgba(0,0,0,.55);font-size:.9rem;color:#e7e3d8;';
+    panel.innerHTML =
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
+        [4,6,8,10,12,20,100].map(function(d){
+          return '<button data-die="' + d + '" style="flex:1;min-width:52px;cursor:pointer;border:1px solid #2a2f3d;border-radius:9px;background:#0d1017;color:#e3b352;padding:9px 0;font-family:inherit;font-weight:600">d' + d + '</button>';
+        }).join('') + '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">' +
+        '<label style="color:#6f6c63;font-size:.78rem">QTY</label><input id="afDq" type="number" value="1" min="1" max="20" style="width:52px;background:#0d1017;border:1px solid #2a2f3d;border-radius:8px;color:#e7e3d8;padding:7px;font-family:inherit">' +
+        '<label style="color:#6f6c63;font-size:.78rem">MOD</label><input id="afDm" type="number" value="0" style="width:56px;background:#0d1017;border:1px solid #2a2f3d;border-radius:8px;color:#e7e3d8;padding:7px;font-family:inherit">' +
+        '<select id="afDadv" style="flex:1;background:#0d1017;border:1px solid #2a2f3d;border-radius:8px;color:#e7e3d8;padding:7px;font-family:inherit"><option value="n">Normal</option><option value="a">Advantage</option><option value="d">Disadvantage</option></select>' +
+      '</div>' +
+      '<div id="afDout" style="min-height:40px;border:1px dashed #2a2f3d;border-radius:10px;padding:9px 11px;color:#b4b0a4;margin-bottom:8px">Pick a die.</div>' +
+      '<div id="afDhist" style="font-size:.76rem;color:#6f6c63;max-height:96px;overflow:auto"></div>';
+    document.body.appendChild(panel);
+
+    fab.onclick = function(){ panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; };
+
+    panel.addEventListener('click', function(e){
+      var b = e.target.closest('[data-die]'); if (!b) return;
+      var die = +b.dataset.die;
+      var qty = clamp(parseInt(document.getElementById('afDq').value) || 1, 1, 20);
+      var mod = parseInt(document.getElementById('afDm').value) || 0;
+      var adv = document.getElementById('afDadv').value;
+      var rolls = [], detail;
+      if (die === 20 && adv !== 'n' && qty === 1){
+        var r1 = 1 + Math.floor(Math.random() * 20), r2 = 1 + Math.floor(Math.random() * 20);
+        var pick = adv === 'a' ? Math.max(r1, r2) : Math.min(r1, r2);
+        rolls = [pick];
+        detail = 'd20 (' + (adv === 'a' ? 'adv' : 'dis') + ') [' + r1 + ', ' + r2 + '] → ' + pick;
+      } else {
+        for (var i = 0; i < qty; i++) rolls.push(1 + Math.floor(Math.random() * die));
+        detail = qty + 'd' + die + ' [' + rolls.join(', ') + ']';
+      }
+      var total = rolls.reduce(function(a, x){ return a + x; }, 0) + mod;
+      var line = detail + (mod ? (mod > 0 ? ' + ' + mod : ' − ' + Math.abs(mod)) : '') + ' = ' + total;
+      var crit = die === 20 && rolls.indexOf(20) !== -1, fumble = die === 20 && rolls.length === 1 && rolls[0] === 1;
+      document.getElementById('afDout').innerHTML =
+        '<span style="font-family:Cinzel,serif;font-size:1.3rem;color:' + (crit ? '#8fce9a' : fumble ? '#d98a8d' : '#e3b352') + '">' + total + '</span>' +
+        '<span style="margin-left:10px;color:#b4b0a4">' + line + '</span>';
+      hist.unshift(line);
+      if (hist.length > 8) hist.pop();
+      document.getElementById('afDhist').innerHTML = hist.map(function(h){ return '<div>' + h + '</div>'; }).join('');
+    });
+  })();
+})();
+
 </script>
 </body>
 </html>
