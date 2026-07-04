@@ -2099,9 +2099,12 @@ function codexSaveSnapshot(lib){_idbPut(lib);try{localStorage.setItem(CODEX_SHAR
 /* ===== end shared block ===== */
 const looksLikeCodex=codexLooks;
 async function loadCodexCache(){ const r=await codexLoad(); if(r) codexCache=r.data; }
-async function detectCodex(){
-  const r=await codexLoad(); if(!r) return null;
-  return {data:r.data, source:(r.data.meta&&r.data.meta.title)||'Codex', live:r.source!==CODEX_SHARED_CACHE};
+/* Synchronous: reads the cache that loadCodexCache() fills at startup,
+   after imports, and after campaign Codex pulls. (Was async — callers
+   treated the returned Promise as the library and rendered nothing.) */
+function detectCodex(){
+  if(!codexCache) return null;
+  return {data:codexCache, source:(codexCache.meta&&codexCache.meta.title)||'Codex', live:true};
 }
 
 function fget(fields, ...names){
@@ -2362,7 +2365,12 @@ function saveCard(){
 }
 
 /* ---- manager UI (read-only viewer) ---- */
-function openCodex(){ codexQuery=''; $('#codexBg').classList.add('open'); renderCodex(); }
+function openCodex(){
+  codexQuery='';
+  $('#codexBg').classList.add('open');
+  if(!codexCache){ loadCodexCache().then(renderCodex); }
+  renderCodex();
+}
 function closeCodex(){ $('#codexBg').classList.remove('open'); }
 function cxRow(e,i){
   let sub;
