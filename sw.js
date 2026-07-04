@@ -11,7 +11,7 @@
 
    To force a clean refresh of everything after a big update, bump CACHE_VERSION.
    ===================================================================== */
-const CACHE_VERSION = 'arcanaforge-v14';
+const CACHE_VERSION = 'arcanaforge-v15';
 
 /* App shell precached on install. Missing files are skipped gracefully, so an
    optional tool you haven't added yet won't break the install. */
