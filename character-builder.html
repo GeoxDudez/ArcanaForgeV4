@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcanaForge — Forge of Heroes</title>
+<meta name="theme-color" content="#0a0c11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<style>
+:root{
+  --bg-0:#0a0c11;--bg-1:#12141c;--panel:#181b24;--panel-2:#1f2330;
+  --line:#2c313e;--line-soft:#22262f;
+  --txt:#ece9e1;--txt-dim:#9aa0ad;--txt-faint:#646b78;
+  --gold:#e3b352;--gold-soft:#f0cd80;--gold-dim:#9c7d3c;
+  --blood:#c62a30;--good:#5fae6a;
+  --font-display:'Cinzel',Georgia,serif;--font-ui:'Spline Sans',system-ui,sans-serif;
+  --radius:12px;--shadow:0 8px 30px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-0);color:var(--txt);font-family:var(--font-ui);font-weight:300;line-height:1.55;min-height:100vh}
+button{font-family:var(--font-ui)}
+a{color:var(--gold);text-decoration:none}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;max-width:1080px;margin:0 auto;padding:18px 20px 6px}
+.brand{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+.kicker-logo{height:26px;width:auto}
+.brand h1{font-family:var(--font-display);font-weight:600;font-size:1.25rem;letter-spacing:.06em;white-space:nowrap}
+.brand .sep{color:var(--gold-dim);margin:0 6px}
+.btn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);color:var(--txt);padding:9px 16px;font-size:.88rem;font-weight:500;transition:.15s}
+.btn:hover{border-color:var(--gold-dim);color:var(--gold-soft)}
+.btn.ghost{background:transparent}
+.btn.gold{background:linear-gradient(180deg,var(--gold),#c9a24b);color:#1a1405;border:0;font-weight:600}
+.btn.gold:hover{transform:translateY(-1px)}
+.btn.gold:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.sm{padding:6px 11px;font-size:.78rem}
+
+.wrap{max-width:1080px;margin:0 auto;padding:10px 20px 90px}
+
+/* steps rail */
+.rail{display:flex;gap:6px;margin:14px 0 22px;flex-wrap:wrap}
+.rail .st{flex:1;min-width:120px;text-align:center;padding:10px 6px;border:1px solid var(--line-soft);border-radius:10px;
+  font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint);font-weight:700;cursor:default}
+.rail .st.done{color:var(--txt-dim);border-color:var(--line)}
+.rail .st.on{color:var(--gold);border-color:var(--gold-dim);background:rgba(227,179,82,.06)}
+.rail .st .n{display:block;font-family:var(--font-display);font-size:1rem;letter-spacing:.05em;margin-bottom:2px}
+
+.panel{background:linear-gradient(180deg,var(--panel),#14161e);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:1.15rem;letter-spacing:.07em;color:var(--gold);margin-bottom:4px}
+.panel .hint{font-size:.82rem;color:var(--txt-faint);margin-bottom:16px}
+label.f{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint);font-weight:700;margin:0 0 5px 2px}
+input,select,textarea{background:var(--bg-0);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:10px 12px;font-family:var(--font-ui);font-size:.92rem}
+input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
+
+/* pick cards */
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.pick{border:1px solid var(--line-soft);border-radius:10px;padding:13px 12px;cursor:pointer;text-align:center;
+  background:var(--bg-1);transition:.13s;font-weight:500;font-size:.92rem}
+.pick:hover{border-color:var(--gold-dim);color:var(--gold-soft)}
+.pick.on{border-color:var(--gold);color:var(--gold);background:rgba(227,179,82,.08);box-shadow:0 0 16px rgba(227,179,82,.08)}
+.desc-box{border:1px solid var(--line-soft);border-radius:10px;background:var(--bg-1);padding:15px 16px;
+  font-size:.88rem;color:var(--txt-dim);white-space:pre-wrap;max-height:230px;overflow:auto;margin-bottom:14px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.row>div{flex:1;min-width:170px}
+.row input,.row select{width:100%}
+
+/* era toggle */
+.era{display:flex;gap:6px}
+.era button{border:1px solid var(--line);background:none;color:var(--txt-dim);border-radius:99px;padding:6px 15px;font-size:.78rem;cursor:pointer;letter-spacing:.04em}
+.era button.on{border-color:var(--gold-dim);color:var(--gold);background:rgba(227,179,82,.07)}
+
+/* features */
+.featlist{display:grid;gap:9px;margin-bottom:14px}
+.feat{border:1px solid var(--line-soft);border-radius:10px;padding:11px 14px;background:var(--bg-1)}
+.feat b{color:var(--gold-soft);font-weight:600;font-size:.92rem}
+.feat .fd{font-size:.82rem;color:var(--txt-dim);margin-top:3px;white-space:pre-wrap}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 14px}
+.chip{border:1px solid var(--gold-dim);color:var(--gold);border-radius:99px;padding:4px 13px;font-size:.78rem;letter-spacing:.04em}
+
+/* abilities */
+.abil-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:11px;margin:14px 0}
+.abil{border:1px solid var(--line-soft);border-radius:11px;padding:13px 10px;text-align:center;background:var(--bg-1)}
+.abil .an{font-size:.7rem;letter-spacing:.16em;color:var(--gold-dim);font-weight:700}
+.abil .mod{font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--txt);margin:4px 0 2px}
+.abil select,.abil input{width:74px;text-align:center;margin-top:6px;font-family:var(--font-display);font-weight:700;font-size:1.05rem}
+.abil .pbbtns{display:flex;justify-content:center;gap:6px;margin-top:7px}
+.abil .pbbtns button{width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:none;color:var(--txt-dim);cursor:pointer;font-weight:700}
+.abil .pbbtns button:hover{color:var(--gold);border-color:var(--gold-dim)}
+.method{display:flex;gap:6px;flex-wrap:wrap}
+.method button{border:1px solid var(--line);background:none;color:var(--txt-dim);border-radius:10px;padding:9px 18px;font-size:.85rem;cursor:pointer}
+.method button.on{border-color:var(--gold-dim);color:var(--gold);background:rgba(227,179,82,.07)}
+.pb-pool{font-family:var(--font-display);color:var(--gold-soft);font-size:1rem;margin-left:6px}
+
+/* review */
+.rev{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.rev .rv{border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px;background:var(--bg-1)}
+.rev .rv .k{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim);font-weight:700}
+.rev .rv .v{font-size:1.05rem;font-weight:500;margin-top:3px}
+.rev .rv input{width:80px;font-family:var(--font-display);font-weight:700;text-align:center;margin-top:4px}
+
+.nav-foot{display:flex;gap:10px;justify-content:space-between;margin-top:20px}
+.hidden{display:none !important}
+.empty{ text-align:center;color:var(--txt-faint);padding:40px 16px}
+.empty .big{font-size:2rem;margin-bottom:10px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:500;
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--gold);color:var(--txt);
+  padding:11px 20px;border-radius:11px;font-size:.88rem;box-shadow:var(--shadow);transition:.25s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <img class="kicker-logo" src="arcanaforge-wordmark.png" alt="ArcanaForge">
+    <h1>⚔ <span class="sep">·</span> Forge of Heroes</h1>
+  </div>
+  <div class="era" id="eraSeg" title="Which rules era of your Codex to draw from">
+    <button data-era="2024" class="on">2024 Rules</button>
+    <button data-era="legacy">Legacy (2014)</button>
+    <button data-era="all">Everything</button>
+  </div>
+  <a class="btn ghost" href="character-sheets.html">← My Characters</a>
+</header>
+
+<div class="wrap">
+  <div class="rail" id="rail"></div>
+
+  <div class="panel" id="noCodex" style="display:none">
+    <div class="empty"><div class="big">📚</div>
+      No Codex found on this device. Open <a href="codex.html">The Codex</a> once —
+      or link a campaign and open Character Sheets to receive your GM's — then return to the forge.</div>
+  </div>
+
+  <!-- STEP 1 · IDENTITY -->
+  <div class="panel step" id="s1">
+    <h2>Ⅰ · Who Are You?</h2>
+    <p class="hint">Choose a heritage from the Codex — homebrew species your GM added appear here automatically.</p>
+    <div class="pick-grid" id="spGrid"></div>
+    <div id="subRow" class="row" style="display:none">
+      <div><label class="f">Lineage / Subrace</label><select id="subSel"></select></div>
+    </div>
+    <div class="desc-box" id="spDesc" style="display:none"></div>
+    <div class="row">
+      <div style="flex:2"><label class="f">Name</label><input id="nameIn" placeholder="Forge one, or roll the dice →" maxlength="60"></div>
+      <div><label class="f">Name style</label><select id="nameStyle"><option value="any">Any</option><option value="Female">Feminine</option><option value="Male">Masculine</option></select></div>
+      <div style="flex:0"><button class="btn" id="nameBtn" title="Suggest a name from your Codex name tables">🎲 Suggest</button></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 · CLASS -->
+  <div class="panel step hidden" id="s2">
+    <h2>Ⅱ · Your Calling</h2>
+    <p class="hint">Every class in your Codex — including homebrew — with its level-1 features.</p>
+    <div class="pick-grid" id="clGrid"></div>
+    <div id="clDetail" style="display:none">
+      <div class="chips" id="clChips"></div>
+      <label class="f">Level 1 Features (added to your sheet)</label>
+      <div class="featlist" id="clFeats"></div>
+      <div class="row" id="saveRow">
+        <div><label class="f">Saving Throw Proficiency 1</label><select id="save1"></select></div>
+        <div><label class="f">Saving Throw Proficiency 2</label><select id="save2"></select></div>
+        <div><label class="f">Hit Die</label><select id="hitDie"><option>d6</option><option>d8</option><option>d10</option><option>d12</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 · ABILITIES -->
+  <div class="panel step hidden" id="s3">
+    <h2>Ⅲ · Your Measure</h2>
+    <p class="hint">Three roads to the same six numbers. Racial bonuses in the 2024 rules come from your background era — apply any adjustments on the sheet afterward.</p>
+    <div class="method" id="methodSeg">
+      <button data-m="array" class="on">Standard Array</button>
+      <button data-m="pointbuy">Point Buy <span class="pb-pool" id="pbPool"></span></button>
+      <button data-m="roll">Roll 4d6</button>
+      <button class="btn sm ghost" id="rerollBtn" style="display:none">↻ Reroll all</button>
+    </div>
+    <div class="abil-grid" id="abilGrid"></div>
+  </div>
+
+  <!-- STEP 4 · BACKGROUND -->
+  <div class="panel step hidden" id="s4">
+    <h2>Ⅳ · Your Past</h2>
+    <p class="hint">Backgrounds from your Codex. Skill proficiencies apply to your sheet automatically.</p>
+    <div class="row"><div><input id="bgSearch" placeholder="Search backgrounds…" style="width:100%"></div></div>
+    <div class="pick-grid" id="bgGrid"></div>
+    <div id="bgDetail" style="display:none">
+      <div class="chips" id="bgChips"></div>
+      <div class="desc-box" id="bgDesc"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5 · REVIEW -->
+  <div class="panel step hidden" id="s5">
+    <h2>Ⅴ · The Forging</h2>
+    <p class="hint">Everything below lands on a ready-to-play sheet. Numbers are editable before the hammer falls.</p>
+    <div class="rev" id="revGrid"></div>
+    <label class="f">Level 1 Features going onto the sheet</label>
+    <div class="featlist" id="revFeats"></div>
+  </div>
+
+  <div class="nav-foot">
+    <button class="btn ghost" id="backBtn" disabled>← Back</button>
+    <button class="btn gold" id="nextBtn">Next →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   ArcanaForge — Forge of Heroes (guided character builder)
+   Everything it offers comes from the Codex on this device, so homebrew
+   classes, species, feats and backgrounds appear automatically.
+   ===================================================================== */
+const ROSTER_KEY='ttrpg-char-codex-v1';
+const $=q=>document.querySelector(q);
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let toastT=null;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+const ABILS=[['str','Strength'],['dex','Dexterity'],['con','Constitution'],['int','Intelligence'],['wis','Wisdom'],['cha','Charisma']];
+const mod=v=>Math.floor((v-10)/2);
+const sMod=v=>(mod(v)>=0?'+':'')+mod(v);
+
+/* ---------- Codex bridge ---------- */
+function _idbGet(){ return new Promise(res=>{ try{
+  const rq=indexedDB.open('the-table-codex'); rq.onerror=()=>res(null);
+  rq.onsuccess=()=>{ const db=rq.result;
+    if(!db.objectStoreNames.contains('data')){ db.close(); return res(null); }
+    const g=db.transaction('data').objectStore('data').get('codex_db_v1');
+    g.onsuccess=()=>{ db.close(); res(g.result||null); }; g.onerror=()=>{ db.close(); res(null); };
+  };
+}catch(e){ res(null); } }); }
+let LIB=null;
+async function loadLib(){
+  let v=await _idbGet();
+  if(!(v&&Array.isArray(v.collections))){
+    for(const k of ['codex_db_v1','codex-shared-cache-v1']){
+      try{ const r=JSON.parse(localStorage.getItem(k)); if(r&&Array.isArray(r.collections)){ v=r; break; } }catch(e){}
+    }
+  }
+  LIB=(v&&Array.isArray(v.collections))?v:null;
+}
+const lists=(dom)=>LIB?LIB.collections.filter(c=>c.domain===dom):[];
+const byName=(dom,name)=>LIB?LIB.collections.find(c=>c.domain===dom&&c.name===name):null;
+const eName=e=>(e&&typeof e==='object')?(e.name||''):String(e);
+const eDesc=e=>(e&&typeof e==='object')?(e.desc||''):'';
+const eFields=e=>(e&&typeof e==='object'&&e.fields&&typeof e.fields==='object')?e.fields:{};
+const eTags=e=>(e&&typeof e==='object'&&Array.isArray(e.tags))?e.tags:[];
+
+/* ---------- era filtering ---------- */
+let era='2024';
+function eraOk(entry, listName){
+  if(era==='all') return true;
+  const tags=eTags(entry), f=eFields(entry);
+  const isLegacy = tags.includes('2014')||tags.includes('legacy')||/legacy|2014/i.test(listName||'')||/2014|legacy/i.test(f['Edition']||f['Rules Status']||'');
+  const is2024   = tags.includes('2024')||/2024/i.test(listName||'')||/2024/i.test(f['Edition']||f['Rules Status']||'');
+  if(era==='2024')  return !isLegacy || is2024;
+  if(era==='legacy') return isLegacy || (!is2024 && !isLegacy);
+  return true;
+}
+
+/* ---------- wizard state ---------- */
+const STEPS=['Identity','Calling','Measure','Past','Forging'];
+let step=0;
+const state={
+  species:null, sub:'', name:'',
+  clazz:null, save1:'str', save2:'con', hitDie:'d8',
+  method:'array', scores:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
+  arrayPick:{str:'',dex:'',con:'',int:'',wis:'',cha:''}, rolled:null,
+  background:null,
+  hp:null, ac:null, speed:30
+};
+const HIT_DIE={'barbarian':'d12','fighter':'d10','paladin':'d10','ranger':'d10',
+  'sorcerer':'d6','wizard':'d6','artificer':'d8','bard':'d8','cleric':'d8','druid':'d8','monk':'d8','rogue':'d8','warlock':'d8'};
+const SAVES={'barbarian':['str','con'],'bard':['dex','cha'],'cleric':['wis','cha'],'druid':['int','wis'],
+  'fighter':['str','con'],'monk':['str','dex'],'paladin':['wis','cha'],'ranger':['str','dex'],
+  'rogue':['dex','int'],'sorcerer':['con','cha'],'warlock':['wis','cha'],'wizard':['int','wis'],'artificer':['con','int']};
+
+function renderRail(){
+  $('#rail').innerHTML=STEPS.map((s,i)=>
+    `<div class="st ${i===step?'on':(i<step?'done':'')}"><span class="n">${['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ'][i]}</span>${s}</div>`).join('');
+  document.querySelectorAll('.step').forEach((p,i)=>p.classList.toggle('hidden', i!==step));
+  $('#backBtn').disabled = step===0;
+  $('#nextBtn').textContent = step===4 ? '⚒ Forge This Hero' : 'Next →';
+  if(step===4) renderReview();
+}
+
+/* ---------- step 1: identity ---------- */
+function speciesEntries(){
+  const c=byName('Traits','Species'); return c?(c.entries||[]).filter(e=>eName(e)):[];
+}
+function renderSpecies(){
+  const es=speciesEntries();
+  $('#spGrid').innerHTML=es.map(e=>`<div class="pick ${state.species===eName(e)?'on':''}" data-sp="${esc(eName(e))}">${esc(eName(e))}</div>`).join('')
+    || '<div class="empty">No Species list found in the Traits domain of your Codex.</div>';
+}
+function pickSpecies(n){
+  state.species=n; state.sub='';
+  renderSpecies();
+  const e=speciesEntries().find(x=>eName(x)===n);
+  $('#spDesc').style.display=e&&eDesc(e)?'':'none';
+  $('#spDesc').textContent=eDesc(e)||'';
+  const subList=byName('Traits', n.split(' ')[0]+' Sub')||byName('Traits', n+' Sub');
+  if(subList&&(subList.entries||[]).length){
+    $('#subRow').style.display='';
+    $('#subSel').innerHTML='<option value="">— none —</option>'+subList.entries.map(x=>`<option>${esc(eName(x))}</option>`).join('');
+  } else { $('#subRow').style.display='none'; $('#subSel').innerHTML=''; }
+}
+function suggestName(){
+  if(!state.species){ toast('Pick a heritage first'); return; }
+  const base=state.species.split(' ')[0];
+  const style=$('#nameStyle').value;
+  const nameLists=lists('Names');
+  const pool=nameLists.filter(c=>c.name.toLowerCase().startsWith(base.toLowerCase()) &&
+    (style==='any' ? /female|male|child/i.test(c.name) : c.name.includes(style)));
+  const fam=nameLists.find(c=>c.name.toLowerCase().startsWith(base.toLowerCase()) && /clan|family|surname/i.test(c.name));
+  const src=pool.length?pool:nameLists.filter(c=>/female|male/i.test(c.name));
+  if(!src.length){ toast('No name tables in the Codex for this heritage'); return; }
+  const pickL=src[Math.floor(Math.random()*src.length)];
+  const given=eName(pickL.entries[Math.floor(Math.random()*pickL.entries.length)]);
+  const family=fam&&fam.entries.length?' '+eName(fam.entries[Math.floor(Math.random()*fam.entries.length)]):'';
+  $('#nameIn').value=(given+family).trim();
+  state.name=$('#nameIn').value;
+}
+
+/* ---------- step 2: class ---------- */
+function classLists(){ return lists('Classes'); }
+function renderClasses(){
+  $('#clGrid').innerHTML=classLists().map(c=>
+    `<div class="pick ${state.clazz===c.name?'on':''}" data-cl="${esc(c.name)}">${esc(c.name)}</div>`).join('')
+    || '<div class="empty">No lists in the Classes domain of your Codex.</div>';
+}
+function lvl1Features(clName){
+  const c=byName('Classes',clName); if(!c) return [];
+  return (c.entries||[]).filter(e=>{
+    const f=eFields(e);
+    return String(f['Level'])==='1' && !f['Subclass'] && eraOk(e,c.name);
+  });
+}
+function pickClass(n){
+  state.clazz=n; renderClasses();
+  const feats=lvl1Features(n);
+  $('#clDetail').style.display='';
+  $('#clChips').innerHTML=`<span class="chip">⚔ ${esc(n)}</span><span class="chip">${feats.length} level-1 feature${feats.length===1?'':'s'}</span>`;
+  $('#clFeats').innerHTML=feats.map(f=>`<div class="feat"><b>${esc(eName(f))}</b><div class="fd">${esc(eDesc(f))}</div></div>`).join('')
+    || '<div class="feat"><div class="fd">No level-1 features found for this class in the Codex — the sheet starts clean.</div></div>';
+  const key=n.toLowerCase().trim();
+  const sv=SAVES[key]; const hd=HIT_DIE[key];
+  const opts=ABILS.map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+  $('#save1').innerHTML=opts; $('#save2').innerHTML=opts;
+  state.save1=sv?sv[0]:'str'; state.save2=sv?sv[1]:'con';
+  $('#save1').value=state.save1; $('#save2').value=state.save2;
+  state.hitDie=hd||'d8'; $('#hitDie').value=state.hitDie;
+  $('#saveRow').querySelectorAll('select').forEach(s=>s.disabled=false);
+  if(!sv) toast('Homebrew class — pick its saves and hit die below');
+}
+
+/* ---------- step 3: abilities ---------- */
+const ARRAY_VALS=[15,14,13,12,10,8];
+const PB_COST={8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+function pbSpent(){ return ABILS.reduce((s,[k])=>s+(PB_COST[state.scores[k]]??0),0); }
+function roll4d6(){ const r=[0,0,0,0].map(()=>1+Math.floor(Math.random()*6)); r.sort((a,b)=>a-b); return r[1]+r[2]+r[3]; }
+function renderAbilities(){
+  document.querySelectorAll('#methodSeg [data-m]').forEach(b=>b.classList.toggle('on', b.dataset.m===state.method));
+  $('#rerollBtn').style.display = state.method==='roll'?'':'none';
+  $('#pbPool').textContent = state.method==='pointbuy' ? (27-pbSpent())+' pts' : '';
+  const g=$('#abilGrid');
+  if(state.method==='array'){
+    g.innerHTML=ABILS.map(([k,l])=>{
+      const used=ABILS.filter(([k2])=>k2!==k).map(([k2])=>state.arrayPick[k2]);
+      const opts='<option value="">—</option>'+ARRAY_VALS.map(v=>{
+        const taken=used.filter(u=>String(u)===String(v)).length >= ARRAY_VALS.filter(x=>x===v).length;
+        return `<option ${String(state.arrayPick[k])===String(v)?'selected':''} ${taken?'disabled':''}>${v}</option>`;
+      }).join('');
+      const val=state.arrayPick[k]||10;
+      return `<div class="abil"><div class="an">${l}</div><div class="mod">${sMod(+val||10)}</div><select data-arr="${k}">${opts}</select></div>`;
+    }).join('');
+  } else if(state.method==='pointbuy'){
+    g.innerHTML=ABILS.map(([k,l])=>`<div class="abil"><div class="an">${l}</div>
+      <div class="mod">${sMod(state.scores[k])}</div>
+      <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:700">${state.scores[k]}</div>
+      <div class="pbbtns"><button data-pb="${k}:-1">−</button><button data-pb="${k}:1">+</button></div></div>`).join('');
+  } else {
+    if(!state.rolled){ state.rolled=ABILS.map(()=>roll4d6()); }
+    g.innerHTML=ABILS.map(([k,l],i)=>{
+      const opts=state.rolled.map((v,j)=>`<option value="${j}" ${state.arrayPick[k]===String(j)?'selected':''}>${v}</option>`).join('');
+      return `<div class="abil"><div class="an">${l}</div><div class="mod">${state.arrayPick[k]!==''&&state.arrayPick[k]!=null?sMod(state.rolled[+state.arrayPick[k]]):'—'}</div>
+        <select data-arr="${k}"><option value="">—</option>${opts}</select></div>`;
+    }).join('');
+  }
+}
+function commitScores(){
+  if(state.method==='array'){
+    ABILS.forEach(([k])=>state.scores[k]=+state.arrayPick[k]||10);
+  } else if(state.method==='roll'){
+    ABILS.forEach(([k])=>{ const i=state.arrayPick[k]; state.scores[k]=(i!==''&&i!=null)?state.rolled[+i]:10; });
+  }
+}
+
+/* ---------- step 4: background ---------- */
+function bgLists(){
+  return lists('Traits').filter(c=>/background/i.test(c.name))
+    .filter(c=> era==='all' ? true : era==='2024' ? /2024/i.test(c.name)||!/legacy|2014/i.test(c.name) : /legacy|2014/i.test(c.name));
+}
+function bgEntries(){
+  const q=$('#bgSearch').value.trim().toLowerCase();
+  let out=[];
+  bgLists().forEach(c=>(c.entries||[]).forEach(e=>{ if(eName(e)&&(!q||eName(e).toLowerCase().includes(q))) out.push(e); }));
+  return out.slice(0,60);
+}
+function renderBackgrounds(){
+  $('#bgGrid').innerHTML=bgEntries().map(e=>
+    `<div class="pick ${state.background&&eName(state.background)===eName(e)?'on':''}" data-bg="${esc(eName(e))}">${esc(eName(e))}</div>`).join('')
+    || '<div class="empty">No backgrounds match.</div>';
+}
+function pickBackground(n){
+  state.background=bgEntries().find(e=>eName(e)===n)||state.background;
+  renderBackgrounds();
+  const f=eFields(state.background);
+  const skills=f['Skill Proficiencies']||'';
+  const feat=f['Feature / Feat']||f['Feature']||'';
+  $('#bgDetail').style.display='';
+  $('#bgChips').innerHTML=[skills?`<span class="chip">🎯 ${esc(skills)}</span>`:'',
+                           feat?`<span class="chip">✦ ${esc(feat)}</span>`:''].join('');
+  $('#bgDesc').textContent=eDesc(state.background)||'(No description in the Codex.)';
+}
+
+/* ---------- step 5: review + forge ---------- */
+function hitDieMax(){ return +String(state.hitDie).replace('d',''); }
+function renderReview(){
+  commitScores();
+  if(state.hp==null) state.hp=hitDieMax()+mod(state.scores.con);
+  if(state.ac==null) state.ac=10+mod(state.scores.dex);
+  const f=state.background?eFields(state.background):{};
+  $('#revGrid').innerHTML=`
+    <div class="rv"><div class="k">Name</div><div class="v">${esc(state.name||$('#nameIn').value||'Unnamed')}</div></div>
+    <div class="rv"><div class="k">Heritage</div><div class="v">${esc(state.species||'—')}${state.sub?' · '+esc(state.sub):''}</div></div>
+    <div class="rv"><div class="k">Class</div><div class="v">${esc(state.clazz||'—')} · Lv 1 (${state.hitDie})</div></div>
+    <div class="rv"><div class="k">Background</div><div class="v">${esc(state.background?eName(state.background):'—')}</div></div>
+    <div class="rv"><div class="k">Abilities</div><div class="v" style="font-size:.9rem">${ABILS.map(([k])=>k.toUpperCase()+' '+state.scores[k]).join(' · ')}</div></div>
+    <div class="rv"><div class="k">Saves</div><div class="v">${state.save1.toUpperCase()} & ${state.save2.toUpperCase()}</div></div>
+    <div class="rv"><div class="k">Skills (from background)</div><div class="v" style="font-size:.9rem">${esc(f['Skill Proficiencies']||'—')}</div></div>
+    <div class="rv"><div class="k">Hit Points</div><input id="revHp" type="number" value="${state.hp}" min="1"></div>
+    <div class="rv"><div class="k">Armor Class</div><input id="revAc" type="number" value="${state.ac}" min="1"></div>
+    <div class="rv"><div class="k">Speed</div><input id="revSpeed" type="number" value="${state.speed}" min="0" step="5"></div>`;
+  const feats=state.clazz?lvl1Features(state.clazz):[];
+  const bgFeat=state.background?(eFields(state.background)['Feature / Feat']||''):'';
+  $('#revFeats').innerHTML=feats.map(x=>`<div class="feat"><b>${esc(eName(x))}</b></div>`).join('')
+    + (bgFeat?`<div class="feat"><b>${esc(bgFeat)}</b><div class="fd">From your background — details in your Codex.</div></div>`:'')
+    || '<div class="feat"><div class="fd">A clean slate.</div></div>';
+}
+function forge(){
+  state.hp=+($('#revHp')?.value)||state.hp; state.ac=+($('#revAc')?.value)||state.ac; state.speed=+($('#revSpeed')?.value)||30;
+  const name=(state.name||$('#nameIn').value||'').trim()||'Unnamed Hero';
+  const f=state.background?eFields(state.background):{};
+  const skillProf={};
+  String(f['Skill Proficiencies']||'').split(/[,;]/).map(s=>s.trim()).filter(Boolean).forEach(s=>skillProf[s]=1);
+  const feats=(state.clazz?lvl1Features(state.clazz):[]).map(x=>({name:eName(x), source:'Class: '+state.clazz, text:eDesc(x)}));
+  const bgFeat=f['Feature / Feat']||f['Feature']||'';
+  if(bgFeat) feats.push({name:bgFeat, source:'Background: '+eName(state.background), text:'Granted by your background — look it up in the Codex for full details.'});
+  const c={
+    id:'c'+Math.random().toString(36).slice(2,10), created:Date.now(),
+    name, portrait:'',
+    species:(state.species||'')+(state.sub?' ('+state.sub+')':''), clazz:state.clazz||'Adventurer', subclass:'', level:1, xp:0,
+    abilities:{...state.scores},
+    saveProf:{str:false,dex:false,con:false,int:false,wis:false,cha:false},
+    skillProf,
+    hp:{cur:state.hp,max:state.hp,temp:0},
+    deathSaves:{succ:0,fail:0},
+    ac:state.ac, speed:state.speed, inspiration:false,
+    darkvision:'',
+    armorProf:'', weaponProf:'', toolProf:'', languages:'Common',
+    defenses:[], conditions:[], actions:[],
+    spell:{ability:'int', slots:{}, list:[]},
+    coin:{pp:0,gp:0,ep:0,sp:0,cp:0},
+    inventory:[], features:feats,
+    background:{name:state.background?eName(state.background):'', appearance:'', personality:'', ideals:'', bonds:'', flaws:'',
+                alignment:'', gender:'', eyes:'', size:'', height:'', faith:'', hair:'', skin:'', age:'', weight:''},
+    notes:{organizations:'', allies:'', enemies:'', backstory:'', other:''},
+    extras:[], customPanels:[], panelSizes:{},
+    locks:{abilities:false, saves:false, skills:false},
+    activeTab:'actions'
+  };
+  c.saveProf[state.save1]=true; c.saveProf[state.save2]=true;
+  let roster=[]; try{ roster=JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(e){}
+  roster.unshift(c);
+  localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+  toast('⚒ '+name+' steps from the forge…');
+  setTimeout(()=>location.href='character-sheets.html', 900);
+}
+
+/* ---------- validation per step ---------- */
+function canAdvance(){
+  if(step===0){ if(!state.species){ toast('Choose a heritage'); return false; } state.name=$('#nameIn').value.trim(); state.sub=$('#subSel').value||''; return true; }
+  if(step===1){ if(!state.clazz){ toast('Choose a class'); return false; }
+    state.save1=$('#save1').value; state.save2=$('#save2').value; state.hitDie=$('#hitDie').value;
+    if(state.save1===state.save2){ toast('Pick two different saving throws'); return false; } return true; }
+  if(step===2){ commitScores();
+    if(state.method==='array'&&ABILS.some(([k])=>!state.arrayPick[k])){ toast('Assign every array value'); return false; }
+    if(state.method==='roll'&&ABILS.some(([k])=>state.arrayPick[k]===''||state.arrayPick[k]==null)){ toast('Assign every rolled value'); return false; }
+    if(state.method==='pointbuy'&&pbSpent()>27){ toast('Over the 27-point budget'); return false; }
+    state.hp=null; state.ac=null; return true; }
+  if(step===3){ if(!state.background){ toast('Choose a background'); return false; } return true; }
+  return true;
+}
+
+/* ---------- events ---------- */
+$('#spGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-sp]'); if(p) pickSpecies(p.dataset.sp); });
+$('#subSel')?.addEventListener('change',e=>state.sub=e.target.value);
+$('#nameBtn').addEventListener('click',suggestName);
+$('#clGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-cl]'); if(p) pickClass(p.dataset.cl); });
+$('#bgGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-bg]'); if(p) pickBackground(p.dataset.bg); });
+$('#bgSearch').addEventListener('input',renderBackgrounds);
+$('#methodSeg').addEventListener('click',e=>{
+  const b=e.target.closest('[data-m]'); if(!b) return;
+  state.method=b.dataset.m;
+  if(state.method!=='pointbuy') ABILS.forEach(([k])=>state.arrayPick[k]='');
+  if(state.method==='pointbuy') ABILS.forEach(([k])=>state.scores[k]=8);
+  if(state.method==='roll') state.rolled=null;
+  renderAbilities();
+});
+$('#rerollBtn').addEventListener('click',()=>{ state.rolled=null; ABILS.forEach(([k])=>state.arrayPick[k]=''); renderAbilities(); });
+$('#abilGrid').addEventListener('change',e=>{ const a=e.target.dataset.arr; if(a){ state.arrayPick[a]=e.target.value; renderAbilities(); } });
+$('#abilGrid').addEventListener('click',e=>{
+  const b=e.target.closest('[data-pb]'); if(!b) return;
+  const [k,d]=b.dataset.pb.split(':');
+  const nv=state.scores[k]+ +d;
+  if(nv<8||nv>15) return;
+  const cost=(PB_COST[nv]??99)-(PB_COST[state.scores[k]]??0);
+  if(pbSpent()+cost>27){ toast('Not enough points'); return; }
+  state.scores[k]=nv; renderAbilities();
+});
+$('#eraSeg').addEventListener('click',e=>{
+  const b=e.target.closest('[data-era]'); if(!b) return;
+  era=b.dataset.era;
+  document.querySelectorAll('#eraSeg button').forEach(x=>x.classList.toggle('on',x.dataset.era===era));
+  if(state.clazz) pickClass(state.clazz);
+  state.background=null; $('#bgDetail').style.display='none'; renderBackgrounds();
+});
+$('#nextBtn').addEventListener('click',()=>{
+  if(step===4){ forge(); return; }
+  if(!canAdvance()) return;
+  step++; renderRail();
+  if(step===2) renderAbilities();
+  if(step===3) renderBackgrounds();
+});
+$('#backBtn').addEventListener('click',()=>{ if(step>0){ step--; renderRail(); } });
+
+/* ---------- init ---------- */
+(async function(){
+  await loadLib();
+  if(!LIB){ $('#noCodex').style.display=''; document.querySelectorAll('.step,.nav-foot,.rail').forEach(x=>x.classList.add('hidden')); return; }
+  renderRail(); renderSpecies(); renderClasses();
+})();
+</script>
+<script src="arcanaforge-quicksearch.js"></script>
+<script src="arcanaforge-update-banner.js"></script>
+</body>
+</html>
