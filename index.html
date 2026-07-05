@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArcanaForge — The Game Master's Command Center</title>
-<meta name="description" content="ArcanaForge is a free Game Master toolkit: initiative tracker, character sheets, campaign notes, and NPC, loot, shop, dungeon, and environment generators — all driven by one shared Codex. Installable, offline-ready, no account needed.">
+<meta name="description" content="ArcanaForge is a free Game Master toolkit: initiative tracker, character sheets, a guided character builder, campaign notes, group inventory, and custom generators — all driven by one shared Codex, with live campaign sync. Installable, offline-ready, no account needed.">
 <meta name="theme-color" content="#0a0c11">
 
 <!-- Open Graph / social preview -->
@@ -338,6 +338,7 @@ footer{
     <nav class="nav-links" aria-label="Site">
       <a href="#tools">Tools</a>
       <a href="#codex">The Codex</a>
+      <a href="#together">Play Together</a>
       <a href="#install">Install</a>
       <a class="nav-cta" href="dashboard.html">Enter the Forge</a>
     </nav>
@@ -358,13 +359,14 @@ footer{
   <img class="hero-mark" src="arcanaforge-mark.png" alt="The ArcanaForge sigil — an arcane gem striking sparks upon an anvil" width="190" height="190">
   <h1 class="hero-word"><img src="arcanaforge-wordmark.png" alt="ArcanaForge" width="908" height="152"></h1>
   <p class="tag">Run the table. Forge the world.</p>
-  <p class="sub">A Game Master's command center — combat tracking, character sheets,
-     campaign notes, and five world-building generators, all drawing from one shared Codex.</p>
+  <p class="sub">A Game Master's command center — combat, character sheets, campaign notes,
+     a guided character builder, and your own custom generators, all drawing from one shared Codex —
+     with live campaign sync when your party joins.</p>
   <div class="hero-actions">
     <a class="btn btn-forge" href="dashboard.html">Enter the Forge</a>
     <a class="btn btn-ghost" href="codex.html">Open the Codex</a>
   </div>
-  <p class="hero-note"><b>Free.</b> No account. Works offline. Your data never leaves your device.</p>
+  <p class="hero-note"><b>Free.</b> No account. Works offline. Solo by default — your data stays on your device.</p>
 </div>
 
 <hr class="molten">
@@ -378,22 +380,27 @@ footer{
     <div class="plates">
       <a class="plate" href="initiative-tracker.html">
         <h3>Initiative Tracker</h3>
-        <p>Turn order, hit points, and conditions at a glance. Pull combatants straight from your Codex and keep fights moving.</p>
+        <p>Turn order, HP, and conditions at a glance. Pull a PC's stats from a shared sheet, roll dice at the table, and broadcast the encounter live to your players' screens.</p>
         <span class="go">Open tracker →</span>
       </a>
       <a class="plate" href="character-sheets.html">
         <h3>Character Sheets</h3>
-        <p>Full sheets for the whole party — abilities, skills, saves, and inventory, ready before the first roll.</p>
+        <p>Full, auto-calculating sheets with a built-in dice roller. Click any item or spell for its Codex entry. Share to your campaign so the GM can see every player's sheet, live.</p>
         <span class="go">Open sheets →</span>
       </a>
+      <a class="plate" href="character-builder.html">
+        <h3>Forge of Heroes</h3>
+        <p>A guided, step-by-step character builder drawn entirely from your Codex — so your homebrew species, classes, and backgrounds appear right alongside the classics.</p>
+        <span class="go">Build a hero →</span>
+      </a>
       <a class="plate" href="campaign-notes.html">
-        <h3>Campaign Notes</h3>
-        <p>Sessions, plot threads, and secrets kept in one place — so nothing your players did gets forgotten.</p>
+        <h3>Campaign Notes &amp; Party Board</h3>
+        <p>Your private prep, plus a shared board and an Adventure Log of session recaps — with a sealed DM-only section players never see.</p>
         <span class="go">Open notes →</span>
       </a>
       <a class="plate" href="group-inventory.html">
         <h3>Group Inventory</h3>
-        <p>Party loot, gold, and shared gear tracked together. No more "who's carrying the rope?"</p>
+        <p>Party loot, gold, and shared gear tracked together and synced live across the table. No more "who's carrying the rope?"</p>
         <span class="go">Open inventory →</span>
       </a>
     </div>
@@ -402,7 +409,7 @@ footer{
 
     <p class="eyebrow">Between sessions</p>
     <h2 class="sec-title">Forge the World</h2>
-    <p class="sec-sub">Five generators that turn prep hours into minutes — each one built on the tables in your Codex, so what they forge is <em>your</em> world.</p>
+    <p class="sec-sub">Five generators that turn prep hours into minutes — plus a Foundry for building your own. Each one draws on the tables in your Codex, so what they forge is <em>your</em> world.</p>
     <div class="plates">
       <a class="plate" href="npc-generator.html">
         <h3>NPC Generator</h3>
@@ -429,6 +436,11 @@ footer{
         <p>Vivid wilds — forests, peaks, deserts, and coasts with features, wildlife, and hazards by time of day.</p>
         <span class="go">Forge a region →</span>
       </a>
+      <a class="plate" href="custom-generators.html">
+        <h3>Generator Foundry</h3>
+        <p>Build your own generators from any Codex lists, then export them to share with other GMs — or import theirs.</p>
+        <span class="go">Open the Foundry →</span>
+      </a>
     </div>
   </div>
 </section>
@@ -439,23 +451,49 @@ footer{
     <div class="codex-copy">
       <p class="eyebrow">The heart of the forge</p>
       <h2 class="sec-title">One Codex. Every tool.</h2>
-      <p>The Codex is your single source of truth — every name table, magic item,
-         stat block, and price list lives there, and <b>every tool reads from it live</b>.</p>
-      <p>Edit a table once and every generator uses it immediately. Add your homebrew
-         items and they appear in loot, in shops, in the party's inventory. No importing
-         per tool, no copies drifting out of sync.</p>
-      <p>Your whole library exports to a single JSON file — <b>back it up, move it,
-         or share it with another GM</b> in one click.</p>
+      <p>The Codex is your single source of truth — every name table, spell, magic item,
+         class, and stat block lives there, and <b>every tool reads from it live</b>: the generators,
+         the character builder, the sheets, the tracker.</p>
+      <p>Add your homebrew once and it appears everywhere — in loot, in shops, in the builder's
+         class list. Press <b>Ctrl&nbsp;K</b> anywhere to search all of it in an instant.</p>
+      <p>Export your whole library to one file to back it up or hand to another GM — or
+         <b>publish it to your campaign</b>, and your players' tools pull it automatically.</p>
     </div>
-    <div class="hub" role="img" aria-label="Diagram: the Codex at the center, feeding NPCs, loot, shops, dungeons, environments, and the initiative tracker">
+    <div class="hub" role="img" aria-label="Diagram: the Codex at the center, feeding the generators, character sheets, the builder, and the initiative tracker">
       <div class="hub-ring"></div>
       <div class="hub-core">THE<br>CODEX</div>
-      <div class="hub-node n1">NPCs</div>
-      <div class="hub-node n2">Loot</div>
-      <div class="hub-node n3">Shops</div>
-      <div class="hub-node n4">Dungeons</div>
-      <div class="hub-node n5">Environments</div>
-      <div class="hub-node n6">Initiative</div>
+      <div class="hub-node n1">Generators</div>
+      <div class="hub-node n2">Sheets</div>
+      <div class="hub-node n3">Builder</div>
+      <div class="hub-node n4">Initiative</div>
+      <div class="hub-node n5">Inventory</div>
+      <div class="hub-node n6">Foundry</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PLAY TOGETHER ===================== -->
+<section id="together">
+  <div class="wrap">
+    <p class="eyebrow">When the party joins</p>
+    <h2 class="sec-title">Play Together, Live</h2>
+    <p class="sec-sub">Create a campaign, share a join code, and your table links up — no accounts, just a name and a code. From then on the shared tools update live for everyone.</p>
+    <div class="pillars">
+      <div class="pillar">
+        <span class="rune" aria-hidden="true">🎲</span>
+        <h3>Shared Table, Live</h3>
+        <p>Group inventory, the Party Board, and a live Game Log update in real time. When a player rolls a natural 20, the whole table sees it land.</p>
+      </div>
+      <div class="pillar">
+        <span class="rune" aria-hidden="true">🛡</span>
+        <h3>The GM Screen</h3>
+        <p>See every player's character sheet, keep DM-only notes players can't read, and roll in secret — the hidden rolls never reach their screens.</p>
+      </div>
+      <div class="pillar">
+        <span class="rune" aria-hidden="true">📡</span>
+        <h3>In Person or Online</h3>
+        <p>Broadcast the initiative order to a second screen at the table, or push it live to your players' own devices when you're playing remote.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -475,7 +513,7 @@ footer{
       <div class="pillar">
         <span class="rune" aria-hidden="true">🛡</span>
         <h3>Your Data Stays Yours</h3>
-        <p>Everything is stored on your own device. No account, no server, nothing uploaded — export whenever you want a backup.</p>
+        <p>Solo by default — everything lives on your own device, no account, nothing uploaded. Link a campaign and only the shared tools sync, through a secure backend, so the table can play together.</p>
       </div>
       <div class="pillar">
         <span class="rune" aria-hidden="true">✦</span>
@@ -504,6 +542,7 @@ footer{
       <a href="dashboard.html">Dashboard</a>
       <a href="codex.html">The Codex</a>
       <a href="#tools">Tools</a>
+      <a href="#together">Play Together</a>
       <a href="#install">Install</a>
     </nav>
     <p class="foot-fine">ArcanaForge is an independent Game Master toolkit. Your table, your rules, your data.</p>
