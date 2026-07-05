@@ -267,7 +267,7 @@ body.is-dragging .tree{outline:1px dashed rgba(227,179,82,.18);outline-offset:-3
     <div class="searchwrap">
       <span class="ico">&#128269;</span>
       <input class="inp" id="globalSearch" placeholder="Search every entry&hellip;" autocomplete="off">
-      <span class="kbd">Ctrl K</span>
+      <span class="kbd">Ctrl F</span>
     </div>
     <div class="spacer"></div>
     <div class="toolbtns">
@@ -1186,7 +1186,7 @@ document.getElementById('globalSearch').addEventListener('input',e=>{ ui.search=
 document.getElementById('homeBtn').addEventListener('click',()=>{ ui.active=null; ui.search=''; clearSelection(); document.getElementById('globalSearch').value=''; render(); });
 document.getElementById('menuToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('on'));
 document.addEventListener('keydown',e=>{
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); document.getElementById('globalSearch').focus(); }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='f'){ e.preventDefault(); document.getElementById('globalSearch').focus(); }
   if(e.key==='Escape'){ closeModal(); closeDrawer(); closePopover(); }
 });
 
@@ -1248,3 +1248,4 @@ document.addEventListener('keydown',e=>{
   });
 })();
 </script>
+<script src="arcanaforge-update-banner.js"></script>

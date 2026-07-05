@@ -11,7 +11,7 @@
 
    To force a clean refresh of everything after a big update, bump CACHE_VERSION.
    ===================================================================== */
-const CACHE_VERSION = 'arcanaforge-v21';
+const CACHE_VERSION = 'arcanaforge-v22';
 
 /* App shell precached on install. Missing files are skipped gracefully, so an
    optional tool you haven't added yet won't break the install. */
@@ -32,6 +32,7 @@ const SHELL = [
   './campaign.html',
   './custom-generators.html',
   './arcanaforge-quicksearch.js',
+  './arcanaforge-update-banner.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
@@ -74,6 +75,12 @@ self.addEventListener('fetch', e => {
 
   // Pages / navigations — network-first
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+    e.respondWith(networkFirst(req));
+    return;
+  }
+  // Scripts (sync engine, config, quick search) — network-first so code
+  // updates arrive on the next load instead of hiding behind the cache
+  if (url.pathname.endsWith('.js')) {
     e.respondWith(networkFirst(req));
     return;
   }

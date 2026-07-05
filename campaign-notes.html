@@ -407,6 +407,15 @@ select.finp option{background:var(--bg-2)}
     .pb-vis button{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:99px;padding:6px 15px;font-size:.8rem;cursor:pointer;font-family:inherit;letter-spacing:.04em}
     .pb-vis button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.08)}
     .pb-vis button.dm.on{border-color:#7e2226;color:#d98a8d;background:rgba(198,42,48,.08)}
+    .pb-kind{display:flex;gap:6px}
+    .pb-kind button{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:99px;padding:6px 15px;font-size:.8rem;cursor:pointer;font-family:inherit;letter-spacing:.04em}
+    .pb-kind button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.08)}
+    .pb-filter{display:flex;gap:8px;margin:0 0 14px}
+    .pb-filter button{border:1px solid #21252f;background:none;color:#6f6c63;border-radius:99px;padding:6px 16px;font-size:.78rem;cursor:pointer;font-family:inherit;letter-spacing:.05em}
+    .pb-filter button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.07)}
+    .pb-note.session{border-color:#9c7d3c;border-left:3px solid #e3b352;background:linear-gradient(180deg,#1b1a14,#12141c)}
+    .pb-note.session h4{font-size:1.15rem}
+    .pb-sess{border:1px solid #9c7d3c;color:#e3b352;border-radius:99px;padding:2px 10px;letter-spacing:.08em;font-size:.7rem}
     .pb-post{margin-left:auto;border:0;border-radius:10px;padding:10px 24px;font-weight:600;cursor:pointer;font-family:inherit;background:linear-gradient(180deg,#e3b352,#c9a24b);color:#0a0c11}
     .pb-cancel{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:10px;padding:9px 16px;cursor:pointer;font-family:inherit}
     .pb-note h4{font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.05em;color:#e3b352;margin-bottom:6px}
@@ -429,6 +438,10 @@ select.finp option{background:var(--bg-2)}
         <input type="text" id="pb-title" placeholder="Title (optional)" maxlength="120">
         <textarea id="pb-body" placeholder="What does the party need to remember?"></textarea>
         <div class="pb-row">
+          <div class="pb-kind" id="pb-kind" style="display:none">
+            <button type="button" id="pb-kind-note" class="on" onclick="pbSetKind('note')">💬 Note</button>
+            <button type="button" id="pb-kind-session" onclick="pbSetKind('session')">📜 Session Recap</button>
+          </div>
           <div class="pb-vis" id="pb-vis" style="display:none">
             <button type="button" id="pb-vis-party" class="on" onclick="pbSetVis('party')">Party</button>
             <button type="button" id="pb-vis-dm" class="dm" onclick="pbSetVis('dm')">DM Only</button>
@@ -436,6 +449,11 @@ select.finp option{background:var(--bg-2)}
           <button class="pb-cancel" id="pb-cancel" style="display:none" onclick="pbCancelEdit()">Cancel</button>
           <button class="pb-post" id="pb-post" onclick="pbSubmit()">Post</button>
         </div>
+      </div>
+      <div class="pb-filter" id="pb-filter">
+        <button data-f="all" class="on">All</button>
+        <button data-f="session">📜 Adventure Log</button>
+        <button data-f="note">💬 Notes</button>
       </div>
       <div id="pb-feed"></div>
     </div>
@@ -1182,7 +1200,19 @@ function renderAll(){
    out by the database itself and never reach a player's browser.
    ==================================================================== */
 const PB_LINKED = !!(window.AFSync && AFSync.isLinked());
-let pbNotes = [], pbVis = 'party', pbEditingId = null, pbFetchT = null;
+let pbNotes = [], pbVis = 'party', pbKind = 'note', pbFilter = 'all', pbEditingId = null, pbFetchT = null;
+
+function pbSetKind(k){
+  pbKind = k;
+  document.getElementById('pb-kind-note').classList.toggle('on', k==='note');
+  document.getElementById('pb-kind-session').classList.toggle('on', k==='session');
+  document.getElementById('pb-title').placeholder = k==='session'
+    ? 'Session title (e.g. Session 12 — Into the Caves of Hunger)'
+    : 'Title (optional)';
+  document.getElementById('pb-body').placeholder = k==='session'
+    ? 'What happened this session? Where did the party leave off?'
+    : 'What does the party need to remember?';
+}
 
 function pbSetVis(v){
   pbVis = v;
@@ -1195,17 +1225,22 @@ function pbFmt(ts){ try{ return new Date(ts).toLocaleString(undefined,{month:'sh
 function pbRender(){
   document.getElementById('cnt-party').textContent = pbNotes.length;
   const feed = document.getElementById('pb-feed');
-  if (!pbNotes.length){
-    feed.innerHTML = '<div class="pb-card pb-empty"><div class="ico">📜</div><p>Nothing on the board yet. First post claims the top spot.</p></div>';
+  const list = pbFilter==='all' ? pbNotes : pbNotes.filter(n => (n.kind||'note')===pbFilter);
+  document.querySelectorAll('#pb-filter [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f===pbFilter));
+  if (!list.length){
+    feed.innerHTML = pbFilter==='session'
+      ? '<div class="pb-card pb-empty"><div class="ico">📜</div><p>The Adventure Log is unwritten. After your next session, post the first recap.</p></div>'
+      : '<div class="pb-card pb-empty"><div class="ico">📜</div><p>Nothing on the board yet. First post claims the top spot.</p></div>';
     return;
   }
-  const me = AFSync.link();
-  feed.innerHTML = pbNotes.map(n => {
+  feed.innerHTML = list.map(n => {
     const mine = n._mine, canEdit = mine || AFSync.isGM();
-    return `<div class="pb-card pb-note">
+    const isSess = (n.kind||'note')==='session';
+    return `<div class="pb-card pb-note${isSess?' session':''}">
       ${n.title ? `<h4>${esc(n.title)}</h4>` : ''}
       <div class="pb-body">${esc(n.body)}</div>
       <div class="pb-meta">
+        ${isSess ? '<span class="pb-sess">📜 SESSION</span>' : ''}
         <span>${esc(n.author_name||'Someone')}</span><span>·</span><span>${pbFmt(n.created_at)}</span>
         ${n.visibility==='dm' ? '<span class="pb-dm">DM ONLY</span>' : ''}
         ${canEdit ? `<span style="margin-left:auto"></span>
@@ -1234,11 +1269,11 @@ async function pbSubmit(){
   const btn = document.getElementById('pb-post'); btn.disabled = true;
   try{
     if (pbEditingId){
-      await AFSync.update('campaign_notes', pbEditingId, { title, body, visibility: pbVis });
+      await AFSync.update('campaign_notes', pbEditingId, { title, body, visibility: pbVis, kind: AFSync.isGM() ? pbKind : 'note' });
       pbCancelEdit();
     } else {
       await AFSync.insert('campaign_notes',
-        { title, body, visibility: pbVis, author_name: AFSync.link().display_name || '' });
+        { title, body, visibility: pbVis, kind: AFSync.isGM() ? pbKind : 'note', author_name: AFSync.link().display_name || '' });
       document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
     }
     pbFetch();
@@ -1251,7 +1286,7 @@ function pbEdit(id){
   pbEditingId = id;
   document.getElementById('pb-title').value = n.title||'';
   document.getElementById('pb-body').value = n.body||'';
-  if (AFSync.isGM()) pbSetVis(n.visibility);
+  if (AFSync.isGM()){ pbSetVis(n.visibility); pbSetKind(n.kind||'note'); }
   document.getElementById('pb-post').textContent = 'Save';
   document.getElementById('pb-cancel').style.display = '';
   document.getElementById('pb-body').focus();
@@ -1260,6 +1295,7 @@ function pbCancelEdit(){
   pbEditingId = null;
   document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
   pbSetVis('party');
+  if (AFSync.isGM && AFSync.isGM()) pbSetKind('note');
   document.getElementById('pb-post').textContent = 'Post';
   document.getElementById('pb-cancel').style.display = 'none';
 }
@@ -1283,7 +1319,14 @@ async function pbDelete(id){
     document.querySelector('.brand h1').appendChild(chip);
   }catch(e){}
   /* GM sees the visibility toggle */
-  if (AFSync.isGM()) document.getElementById('pb-vis').style.display = '';
+  if (AFSync.isGM()){
+    document.getElementById('pb-vis').style.display = '';
+    document.getElementById('pb-kind').style.display = '';
+  }
+  document.getElementById('pb-filter').addEventListener('click', e => {
+    const b = e.target.closest('[data-f]'); if(!b) return;
+    pbFilter = b.dataset.f; pbRender();
+  });
   pbFetch();
   AFSync.onChange('campaign_notes', pbFetchSoon);
 })();
@@ -1292,5 +1335,6 @@ async function pbDelete(id){
 renderAll();
 </script>
 <script src="arcanaforge-quicksearch.js"></script>
+<script src="arcanaforge-update-banner.js"></script>
 </body>
 </html>
