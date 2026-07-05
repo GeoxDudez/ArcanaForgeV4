@@ -108,6 +108,7 @@
     const payload = { ...row, campaign_id: l.campaign_id };
     if (table === 'campaign_notes')   payload.author_id = user.id;
     if (table === 'character_sheets') payload.owner_id  = user.id;
+    if (table === 'campaign_rolls')   payload.roller_id = user.id;
     const { data, error } = await db().from(table).insert(payload).select().single();
     if (error) throw error;
     return data;
