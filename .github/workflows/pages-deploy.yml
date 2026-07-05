@@ -35,7 +35,7 @@ jobs:
     needs: build
     environment:
       name: github-pages
-      url: ${{ steps.deploy_retry.outputs.page_url != '' && steps.deploy_retry.outputs.page_url || steps.deploy_primary.outputs.page_url }}
+      url: ${{ steps.deploy_primary.outcome == 'success' && steps.deploy_primary.outputs.page_url || steps.deploy_retry.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deploy_primary
@@ -44,5 +44,5 @@ jobs:
 
       - name: Retry deployment
         id: deploy_retry
-        if: steps.deploy_primary.outcome == 'failure' || steps.deploy_primary.outcome == 'cancelled'
+        if: steps.deploy_primary.outcome == 'failure'
         uses: actions/deploy-pages@v5
