@@ -588,6 +588,8 @@ tr.rowclick:hover td{ background:rgba(227,179,82,.05); }
   @page{margin:12mm}
 }
 
+.cxn{cursor:pointer;border-bottom:1px dotted var(--gold-dim)}
+.cxn:hover{color:var(--gold) !important;border-bottom-color:var(--gold)}
 </style>
 </head>
 <body>
@@ -1328,8 +1330,8 @@ function actionRow(a, opt){
     tools=`<button class="icon-btn" data-edit-action="${opt.idx}">✎</button><button class="icon-btn del" data-del-action="${opt.idx}">✕</button>`;
     card=`data-card-action="action:${opt.idx}"`;
   }
-  return `<tr class="rowclick" ${card} title="Double-click for full card">
-      <td><b>${esc(a.name)}</b>${badge}</td>
+  return `<tr class="rowclick" ${card} title="Click the name for the full card">
+      <td><b class="cxn">${esc(a.name)}</b>${badge}</td>
       <td>${esc(a.range||'—')}</td>
       <td>${hitCell}</td>
       <td>${dmgCell}</td>
@@ -1379,8 +1381,8 @@ function spellsTab(c){
       slotHTML = `<span class="slot-row"><span class="lab">Slots</span>${boxes||'<span class="faint" style="font-size:11px">—</span>'}
         <button class="icon-btn" data-slotcfg="${lv}" title="set slot count">⚙</button></span>`;
     }
-    const rows = byLevel[lv].map(s=>`<tr class="rowclick" data-card-spell="${s._i}" title="Double-click for full card">
-        <td><b>${esc(s.name)}</b></td>
+    const rows = byLevel[lv].map(s=>`<tr class="rowclick" data-card-spell="${s._i}" title="Click the name for the full card">
+        <td><b class="cxn">${esc(s.name)}</b></td>
         <td>${esc(s.time||'—')}</td>
         <td>${esc(s.range||'—')}</td>
         <td>${esc(s.effect||'—')}</td>
@@ -1424,8 +1426,8 @@ function inventoryTab(c){
       <input class="edit" type="number" data-coin="${k}" value="${coin[k]||0}" min="0" style="width:80px;text-align:right;font-size:15px;font-weight:600;color:${color};border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--bg-1)">
     </div>`).join('');
   const totalW = c.inventory.reduce((s,it)=>s + itemWeight(it)*(Number(it.qty)||1), 0);
-  const rows = c.inventory.length ? c.inventory.map((it,i)=>`<tr class="rowclick" data-card-item="${i}" title="Double-click for full card">
-      <td><b>${esc(it.name)}</b>${it.type?`<div class="faint" style="font-size:11px">${esc(it.type)}</div>`:''}</td>
+  const rows = c.inventory.length ? c.inventory.map((it,i)=>`<tr class="rowclick" data-card-item="${i}" title="Click the name for the full card">
+      <td><b class="cxn">${esc(it.name)}</b>${it.type?`<div class="faint" style="font-size:11px">${esc(it.type)}</div>`:''}</td>
       <td>${(()=>{const w=itemWeight(it);return w>0?esc(String(w)):'—';})()}</td>
       <td>${esc(it.qty||1)}</td>
       <td>${esc(it.cost||'—')}</td>
@@ -1452,9 +1454,9 @@ function inventoryTab(c){
 
 function featuresTab(c){
   const head = gmBar('', `<button class="btn sm" data-add="feature">+ Grant Feature / Trait</button>`);
-  const body = c.features.length ? c.features.map((f,i)=>`<div class="feature-row" data-card-feature="${i}" title="Double-click for full card" style="margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--line-soft)">
+  const body = c.features.length ? c.features.map((f,i)=>`<div class="feature-row" data-card-feature="${i}" title="Click the name for the full card" style="margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--line-soft)">
       <div style="display:flex;align-items:center;gap:8px">
-        <b style="font-size:14px;color:var(--gold-soft)">${esc(f.name)}</b>
+        <b class="cxn" style="font-size:14px;color:var(--gold-soft)">${esc(f.name)}</b>
         ${f.source?`<span class="faint" style="font-size:11px">· ${esc(f.source)}</span>`:''}
         <span style="margin-left:auto"></span>
         <button class="icon-btn" data-edit-feature="${i}">✎</button>
@@ -1518,6 +1520,14 @@ function bindSheetEventsOnce(){
   root.addEventListener('input', onInlineInput);
   root.addEventListener('change', onInlineChange);
   root.addEventListener('click', onSheetClick);
+  root.addEventListener('click', e=>{
+    if(!e.target.closest('.cxn')) return;
+    let m;
+    if((m=e.target.closest('[data-card-spell]'))) openCard('spell', +m.dataset.cardSpell);
+    else if((m=e.target.closest('[data-card-item]'))) openCard('item', +m.dataset.cardItem);
+    else if((m=e.target.closest('[data-card-feature]'))) openCard('feature', +m.dataset.cardFeature);
+    else if((m=e.target.closest('[data-card-action]'))){ const pa=m.dataset.cardAction.split(':'); openCard(pa[0]==='action'?'action':pa[0], +pa[1]); }
+  });
   root.addEventListener('dblclick', e=>{ let m; if((m=e.target.closest('[data-card-spell]'))) openCard('spell', +m.dataset.cardSpell); else if((m=e.target.closest('[data-card-item]'))) openCard('item', +m.dataset.cardItem); else if((m=e.target.closest('[data-card-feature]'))) openCard('feature', +m.dataset.cardFeature); else if((m=e.target.closest('[data-card-action]'))){ const pa=m.dataset.cardAction.split(':'); openCard(pa[0]==='action'?'action':pa[0], +pa[1]); } });
   root.addEventListener('keydown', e=>{
     if(e.target.classList && e.target.classList.contains('nm-input') && e.key==='Enter'){ e.preventDefault(); e.target.blur(); }
