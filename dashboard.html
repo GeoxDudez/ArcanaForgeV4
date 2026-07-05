@@ -153,12 +153,25 @@ button{font-family:inherit;cursor:pointer;color:inherit;border:none;background:n
 .cp-src code{font-family:ui-monospace,monospace;color:var(--gold-soft);background:var(--bg-2);padding:1px 6px;border-radius:5px;font-size:11px}
 .cp-actions{display:flex;gap:9px;flex-wrap:wrap}
 .cp-body{padding:20px 22px}
-.dombars{display:flex;flex-direction:column;gap:10px}
-.dombar{display:grid;grid-template-columns:140px 1fr 54px;align-items:center;gap:14px}
-.dombar .dname{font-size:13px;color:var(--txt-soft);letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dombar .track{height:9px;border-radius:99px;background:var(--bg-2);overflow:hidden;border:1px solid var(--line-soft)}
-.dombar .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));box-shadow:0 0 9px rgba(227,179,82,.4);transition:width .8s cubic-bezier(.2,.8,.2,1)}
-.dombar .dcount{font-size:12px;color:var(--txt-faint);text-align:right;font-variant-numeric:tabular-nums}
+.domgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+.domcard{display:block;border:1px solid var(--line-soft);border-radius:12px;background:var(--bg-2);
+  padding:13px 14px 12px;transition:.16s;color:inherit;text-decoration:none}
+.domcard:hover{border-color:var(--gold-dim);background:linear-gradient(180deg,#1b1d22,#141410);transform:translateY(-2px);
+  box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.domcard .dc-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.domcard .dc-ic{font-size:17px;width:26px;height:26px;flex:none;display:grid;place-items:center;
+  background:var(--panel-2);border:1px solid var(--line-soft);border-radius:7px}
+.domcard .dc-name{flex:1;min-width:0;font-size:13.5px;font-weight:500;color:var(--txt-soft);letter-spacing:.3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.domcard:hover .dc-name{color:var(--gold-soft)}
+.domcard .dc-count{font-size:14px;font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums}
+.domcard .dc-track{display:block;height:6px;border-radius:99px;background:var(--bg-1);overflow:hidden;border:1px solid var(--line-soft)}
+.domcard .dc-fill{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold-dim),var(--gold));
+  box-shadow:0 0 8px rgba(227,179,82,.4);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.domcard .dc-lists{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.domcard .dc-lists .dl{font-size:10.5px;color:var(--txt-faint);background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:99px;padding:2px 9px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.domcard:hover .dc-lists .dl{color:var(--txt-soft)}
 .empty{text-align:center;padding:30px 16px;color:var(--txt-faint)}
 .empty .big{font-size:34px;margin-bottom:10px;opacity:.6}
 .empty p{font-size:13px;line-height:1.6;max-width:440px;margin:0 auto;font-weight:300}
@@ -195,7 +208,7 @@ body.gm-mode .gm-only{display:inline-flex}
 @media(max-width:640px){
   .topbar-inner{flex-wrap:wrap;gap:10px}
   .brand .sub{display:none}
-  .dombar{grid-template-columns:96px 1fr 44px;gap:10px}
+  .domgrid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -244,7 +257,7 @@ body.gm-mode .gm-only{display:inline-flex}
   <section class="sec">
     <div class="sec-head">
       <h3>The Codex</h3>
-      <span class="meta">— the data hub every tool reads from</span>
+      <span class="meta">— your living library, at a glance · click any domain to open it</span>
       <span class="rule"></span>
     </div>
     <div class="codexpanel">
@@ -391,15 +404,21 @@ function looksLikeCodex(obj){
 }
 function summarize(data, source){
   const cols = data.collections.filter(c => c && Array.isArray(c.entries));
+  const icons = (data.domainIcons && typeof data.domainIcons==='object') ? data.domainIcons : {};
   const domMap = {};
   let entries = 0;
   cols.forEach(c=>{
     const n = c.entries.length; entries += n;
     const d = (c.domain || 'Uncategorized');
-    domMap[d] = (domMap[d]||0) + n;
+    if(!domMap[d]) domMap[d] = {count:0, lists:[]};
+    domMap[d].count += n;
+    domMap[d].lists.push({name:c.name||'—', count:n});
   });
   const breakdown = Object.entries(domMap)
-    .map(([domain,count])=>({domain,count}))
+    .map(([domain,v])=>({
+      domain, count:v.count, icon:icons[domain]||'',
+      lists:v.lists.sort((a,b)=>b.count-a.count).slice(0,3)
+    }))
     .sort((a,b)=>b.count-a.count);
   return { entries, lists:cols.length, domains:breakdown.length, breakdown, source };
 }
@@ -504,15 +523,22 @@ function renderCodexPanel(){
   $('#cpSrc').innerHTML = html;
   if(redundantCache){ const b=$('#clearSnap'); if(b) b.onclick=()=>{ localStorage.removeItem(CODEX_CACHE_KEY); toast('Imported snapshot cleared.'); detectCodex(); }; }
   const max = Math.max(...codex.breakdown.map(d=>d.count), 1);
-  body.innerHTML = '<div class="dombars">' + codex.breakdown.map(d=>`
-    <div class="dombar">
-      <span class="dname" title="${esc(d.domain)}">${esc(d.domain)}</span>
-      <span class="track"><span class="fill" style="width:0"></span></span>
-      <span class="dcount">${d.count.toLocaleString()}</span>
-    </div>`).join('') + '</div>';
+  body.innerHTML = '<div class="domgrid">' + codex.breakdown.map(d=>{
+    const pct = Math.round(d.count / max * 100);
+    const lists = (d.lists||[]).map(l=>`<span class="dl" title="${esc(l.name)} · ${l.count.toLocaleString()}">${esc(l.name)}</span>`).join('');
+    return `<a class="domcard" href="${esc(tool('codex').path)}" title="Open ${esc(d.domain)} in the Codex">
+        <div class="dc-top">
+          <span class="dc-ic">${esc(d.icon||'◈')}</span>
+          <span class="dc-name">${esc(d.domain)}</span>
+          <span class="dc-count">${d.count.toLocaleString()}</span>
+        </div>
+        <span class="dc-track"><span class="dc-fill" style="width:0"></span></span>
+        <div class="dc-lists">${lists}</div>
+      </a>`;
+  }).join('') + '</div>';
   // animate fills
   requestAnimationFrame(()=>{
-    $$('#cpBody .fill').forEach((el,i)=>{
+    $$('#cpBody .dc-fill').forEach((el,i)=>{
       el.style.width = (codex.breakdown[i].count / max * 100) + '%';
     });
   });
@@ -538,9 +564,7 @@ function cardHTML(id){
     <div class="desc">${esc(t.desc)}</div>
     <div class="card-actions">
       <button class="${launchCls}" data-launch="${id}">${planned?'⏳':'▶'} ${launchLbl}</button>
-      <button class="pathbtn" data-path="${id}" title="Set file path">✎</button>
     </div>
-    <div class="pathline">→ ${esc(t.path)}</div>
   </div>`;
 }
 function renderTools(){
@@ -550,7 +574,7 @@ function renderTools(){
 }
 function bindCardEvents(){
   $$('[data-launch]').forEach(b=>b.onclick=()=>launch(b.dataset.launch));
-  $$('[data-path]').forEach(b=>b.onclick=()=>openPathModal(b.dataset.path));
+  // (path-edit buttons removed — tool paths are fixed)
 }
 function launch(id){
   const t = tool(id);
