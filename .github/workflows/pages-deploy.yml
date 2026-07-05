@@ -35,7 +35,7 @@ jobs:
     needs: build
     environment:
       name: github-pages
-      url: ${{ steps.deploy_primary.outputs.page_url || steps.deploy_retry.outputs.page_url || 'https://geoxdudez.github.io/ArcanaForgeV4/' }}
+      url: ${{ steps.deploy_primary.outputs.page_url || steps.deploy_retry.outputs.page_url || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
     steps:
       - name: Deploy to GitHub Pages
         id: deploy_primary
