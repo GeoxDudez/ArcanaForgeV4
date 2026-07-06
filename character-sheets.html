@@ -177,8 +177,10 @@ select.edit{appearance:none;cursor:pointer}
 }
 .nm-input:hover{border-color:var(--line)}
 .nm-input:focus{outline:none;border-color:var(--gold);background:rgba(0,0,0,.25)}
-.hdr-meta{display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--txt-dim);margin-top:5px;flex-wrap:wrap}
+.hdr-meta{display:flex;gap:18px;align-items:flex-start;font-size:12.5px;color:var(--txt-dim);margin-top:9px;flex-wrap:wrap}
 .meta-item{display:inline-flex;align-items:center;gap:6px;flex:none;white-space:nowrap}
+.meta-item.stacked{flex-direction:column;align-items:flex-start;gap:4px}
+.meta-item.stacked .ml{display:inline-flex;align-items:center;gap:7px}
 .meta-item .ml{font-size:10px;letter-spacing:.1em;color:var(--txt-faint);text-transform:uppercase;font-weight:700}
 .hdr-meta .edit{width:96px;min-width:0;font-size:13px}
 .meta-item.lvl .edit{width:44px;text-align:center;appearance:textfield;-moz-appearance:textfield}
@@ -1026,9 +1028,9 @@ function headerHTML(c){
       <div class="hdr-names">
         <div class="nm"><textarea class="nm-input" data-f="name" rows="1" spellcheck="false">${esc(c.name)}</textarea></div>
         <div class="hdr-meta">
-          <span class="meta-item"><span class="ml">Species${metaPickBtn('species','Species')}</span><input class="edit" data-f="species" value="${esc(c.species)}"></span>
-          <span class="meta-item"><span class="ml">Class${metaPickBtn('clazz','Class')}</span><input class="edit" data-f="clazz" value="${esc(c.clazz)}"></span>
-          <span class="meta-item lvl"><span class="ml">Lvl</span><input class="edit" data-f="level" type="number" value="${esc(c.level)}"></span>
+          <span class="meta-item stacked"><span class="ml">Species${metaPickBtn('species','Species')}</span><input class="edit" data-f="species" value="${esc(c.species)}"></span>
+          <span class="meta-item stacked"><span class="ml">Class${metaPickBtn('clazz','Class')}</span><input class="edit" data-f="clazz" value="${esc(c.clazz)}"></span>
+          <span class="meta-item lvl stacked"><span class="ml">Lvl</span><input class="edit" data-f="level" type="number" value="${esc(c.level)}"></span>
           <span class="faint">· Prof ${fmt(prof(c))}</span>
         </div>
       </div>
@@ -1507,7 +1509,10 @@ function extrasTab(c){
       <td class="row-tools"><button class="icon-btn" data-edit-extra="${i}">✎</button><button class="icon-btn del" data-del-extra="${i}">✕</button></td>
     </tr>`).join('')
     : `<tr><td colspan="6" class="empty-note">No familiars, sidekicks, or companions.</td></tr>`;
-  return head + `<button class="add-link" data-add="extra" style="margin-bottom:8px">+ Add Companion</button>
+  return head + `<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="add-link" data-add="extra">+ Add Companion</button>
+      <button class="bg-pick" data-monpick="1" title="Pull a creature stat block from the Codex — you can edit it freely after">⌕ From Codex</button>
+    </div>
     <table class="dtable"><thead><tr><th>Name / Type</th><th>AC</th><th>HP</th><th>Speed</th><th>Notes</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
@@ -1634,6 +1639,10 @@ function onSheetClick(e){
   // open a Species/Class (meta) Codex picker
   const mp=t.closest('[data-metapick]');
   if(mp){ const isClass=mp.dataset.metapick==='clazz'; openFieldPick(mp.dataset.metapick, mp.dataset.metalabel||mp.dataset.metapick, {kw:isClass?'class':mp.dataset.metakw||'', target:'meta', mode:isClass?'domainNames':'broad'}); return; }
+
+  // open the Monster picker for the Extras tab
+  const monp=t.closest('[data-monpick]');
+  if(monp){ openFieldPick('__monster', 'Creature from the Codex', {kw:'monsters', target:'monster', mode:'domainScan', details:true}); return; }
 
   // reset a panel's size
   const rsz=t.closest('[data-resetsize]');
@@ -2206,6 +2215,20 @@ function codexFieldEntries(keywords, opts){
   const det=detectCodex(); if(!det) return [];
   const kw=keywords.map(k=>String(k).toLowerCase().trim()).filter(Boolean);
   const collect=[];
+  if(mode==='domainScan'){
+    // every entry within a DOMAIN whose name matches a keyword (keeps fields/desc for import)
+    const out=[];
+    det.data.collections.forEach(col=>{
+      const dom=String(col.domain||'').toLowerCase();
+      if(kw.some(k=>cfeWordHit(dom,k)) && Array.isArray(col.entries)){
+        col.entries.forEach(e=>{ if(e&&e.name) out.push(Object.assign({},e,{_list:col.name||'',_domain:col.domain||''})); });
+      }
+    });
+    const seen=new Set(), res=[];
+    out.forEach(e=>{ const k=String(e.name).trim(); if(!seen.has(k)){seen.add(k);res.push(e);} });
+    res.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    return res;
+  }
   if(mode==='domainNames'){
     // one entry per LIST whose DOMAIN matches a keyword — e.g. every class name under the Classes domain
     const out=[];
@@ -2294,6 +2317,27 @@ function fpPick(i){
   if(!fpState||!current) return;
   const e=fpView[i]; if(!e) return;
   const nm=String(e.name||'').trim(); const ds=String(e.desc||'').trim();
+  if(fpState.target==='monster'){
+    // copy a Codex creature into this sheet's Extras as an EDITABLE snapshot.
+    // Nothing here writes back to the Codex — it's the character's own copy.
+    const f = (e && e.fields) || {};
+    const grab = (...keys)=>{ for(const k of keys){ for(const fk in f){ if(fk.toLowerCase()===k.toLowerCase() && f[fk]) return String(f[fk]); } } return ''; };
+    const hp = grab('Hit Points','HP');
+    const stat = grab('Full Stat Block') || String(e.desc||'');
+    const typeBits = [grab('Size'), grab('Creature Type','Type'), grab('Alignment')].filter(x=>x && x!=='\u2014');
+    current.extras = current.extras || [];
+    current.extras.push({
+      name: nm,
+      type: typeBits.join(' ') || 'Creature',
+      ac: grab('Armor Class','AC').replace(/\s*\(.*$/,'').trim(),
+      hp: hp ? (hp.replace(/\s*\(.*$/,'').trim() + (hp.match(/\d+/)?(' / '+hp.match(/\d+/)[0]):'')) : '',
+      speed: grab('Speed'),
+      notes: stat
+    });
+    save(); rerenderTab(); closeFieldPick();
+    toast(nm+' added — edit it freely, it won\'t change the Codex');
+    return;
+  }
   if(fpState.target==='meta'){
     // top-level field (species / clazz): just the name, kept clean for the header
     current[fpState.field] = nm;
