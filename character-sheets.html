@@ -1509,10 +1509,7 @@ function extrasTab(c){
       <td class="row-tools"><button class="icon-btn" data-edit-extra="${i}">✎</button><button class="icon-btn del" data-del-extra="${i}">✕</button></td>
     </tr>`).join('')
     : `<tr><td colspan="6" class="empty-note">No familiars, sidekicks, or companions.</td></tr>`;
-  return head + `<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-      <button class="add-link" data-add="extra">+ Add Companion</button>
-      <button class="bg-pick" data-monpick="1" title="Pull a creature stat block from the Codex — you can edit it freely after">⌕ From Codex</button>
-    </div>
+  return head + `<button class="add-link" data-add="extra" style="margin-bottom:8px">+ Add Companion</button>
     <table class="dtable"><thead><tr><th>Name / Type</th><th>AC</th><th>HP</th><th>Speed</th><th>Notes</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
@@ -1640,9 +1637,6 @@ function onSheetClick(e){
   const mp=t.closest('[data-metapick]');
   if(mp){ const isClass=mp.dataset.metapick==='clazz'; openFieldPick(mp.dataset.metapick, mp.dataset.metalabel||mp.dataset.metapick, {kw:isClass?'class':mp.dataset.metakw||'', target:'meta', mode:isClass?'domainNames':'broad'}); return; }
 
-  // open the Monster picker for the Extras tab
-  const monp=t.closest('[data-monpick]');
-  if(monp){ openFieldPick('__monster', 'Creature from the Codex', {kw:'monsters', target:'monster', mode:'domainScan', details:true}); return; }
 
   // reset a panel's size
   const rsz=t.closest('[data-resetsize]');
@@ -1811,11 +1805,13 @@ function wireCodexLookup(kind){
   let lib, noun;
   if(kind==='spell'){ lib=codexEntries('spells'); noun='spells'; }
   else if(kind==='feature'){ lib=codexEntries('features').concat(codexEntries('feats')); noun='features & feats'; }
+  else if(kind==='monster'){ lib=codexEntries('monsters'); noun='creatures'; }
   else { lib=codexEntries('gear').concat(codexEntries('magic')); noun='items'; }
   const CAP=400;
   const subFor=(e)=>{
     if(kind==='spell'){ const lvRaw=fget(e.fields,'level'); const lv=lvRaw!==''?(parseInt(lvRaw,10)||0):levelFromList(e._list); const sch=fget(e.fields,'school'); return (lv===0?'Cantrip':(lv?'Lvl '+lv:'Spell'))+(sch?' \u00b7 '+esc(sch):''); }
     if(kind==='feature'){ return esc(entryToFeature(e).source || e._list || ''); }
+    if(kind==='monster'){ const cr=fget(e.fields,'cr','challenge'); const ct=fget(e.fields,'creature type','type'); return esc([ct,cr?('CR '+cr):''].filter(Boolean).join(' \u00b7 ')||e._list||''); }
     const type=fget(e.fields,'type','category','rarity')||e._list; return esc(type||'');
   };
   const rowHTML=(e,i)=>`<button class="cl-row" data-pick="${i}"><span class="cl-nm">${esc(e.name)}</span><span class="cl-sub">${subFor(e)}</span></button>`;
@@ -1847,11 +1843,27 @@ function wireCodexLookup(kind){
     const raw=res._hits[+b.dataset.pick]; if(!raw) return;
     if(kind==='spell'){ const sp=entryToSpell(raw); setFormField('name',sp.name); setFormField('level',sp.level); setFormField('time',sp.time); setFormField('range',sp.range); setFormField('duration',sp.duration); setFormField('components',sp.components); setFormField('effect',sp.effect); setFormField('desc',sp.desc); setFormField('codexRef',raw.name); setFormField('notes',[sp.components,sp.duration].filter(Boolean).join(' \u00b7 ')); }
     else if(kind==='feature'){ const ff=entryToFeature(raw); setFormField('name',ff.name); setFormField('source',ff.source); setFormField('text',ff.text); }
+    else if(kind==='monster'){ const cr=entryToCreature(raw); setFormField('name',cr.name); setFormField('type',cr.type); setFormField('ac',cr.ac); setFormField('hp',cr.hp); setFormField('speed',cr.speed); setFormField('notes',cr.notes); }
     else { const it=entryToItem(raw); setFormField('name',it.name); setFormField('type',it.type); setFormField('weight',it.weight); setFormField('cost',it.cost); setFormField('desc',it.desc); setFormField('codexRef',raw.name); }
     res.innerHTML=`<div class="cl-hint">\u2713 Filled from Codex \u2014 adjust anything below, then Save.</div>`;
     inp.value=raw.name; toast('Loaded from Codex');
   });
   draw();
+}
+function entryToCreature(e){
+  const f=e.fields||{};
+  const g=(...keys)=>{ for(const k of keys){ for(const fk in f){ if(fk.toLowerCase()===k.toLowerCase() && f[fk]) return String(f[fk]); } } return ''; };
+  const hpRaw=g('Hit Points','HP');
+  const hpNum=(hpRaw.match(/\d+/)||[''])[0];
+  const typeBits=[g('Size'),g('Creature Type','Type'),g('Alignment')].filter(x=>x&&x!=='\u2014');
+  return {
+    name:e.name,
+    type:typeBits.join(' ')||'Creature',
+    ac:g('Armor Class','AC').replace(/\s*\(.*$/,'').trim(),
+    hp:hpNum?(hpNum+' / '+hpNum):'',
+    speed:g('Speed'),
+    notes:g('Full Stat Block')||String(e.desc||'')
+  };
 }
 function readModal(){ const o={}; $('#modalBody').querySelectorAll('[data-mf]').forEach(el=>o[el.dataset.mf]=el.value); return o; }
 function closeModal(){ modalBg.classList.remove('open'); modalSaveFn=null; }
@@ -1930,11 +1942,11 @@ function openExtraModal(i){
   openModal(i>=0?'Edit Companion':'Add Companion',[
     {key:'name',label:'Name',val:x.name,ph:'Acadia, Korg…'},
     {key:'type',label:'Type',val:x.type,ph:'Familiar, Sidekick, Construct…'},
-    {key:'ac',label:'AC',val:x.ac,type:'number',half:true},
-    {key:'hp',label:'HP',val:x.hp,half:true,ph:'39 / 39'},
+    {key:'notes',label:'Stat block / Notes',val:x.notes,type:'textarea',ph:'Full stat block, or your own homebrew details…'},
+    {key:'ac',label:'AC',val:x.ac,half:true,ph:'13'},
+    {key:'hp',label:'HP',val:x.hp,half:true,ph:'22 / 22'},
     {key:'speed',label:'Speed',val:x.speed,half:true,ph:'30 ft.'},
-    {key:'notes',label:'Notes',val:x.notes,type:'textarea'},
-  ],o=>{ if(i>=0) current.extras[i]={...x,...o}; else { current.extras.push(o); if(gmMode) toast('Companion granted'); } });
+  ],o=>{ if(i>=0) current.extras[i]={...x,...o}; else { current.extras.push(o); if(gmMode) toast('Companion granted'); } }, i<0?{kind:'monster'}:null);
 }
 
 /* =====================================================================
@@ -2197,6 +2209,19 @@ function levelFromList(name){
   return null;
 }
 function codexEntries(cat){
+  if(cat==='monsters'){
+    const det=detectCodex(); if(!det) return [];
+    const out=[];
+    det.data.collections.forEach(col=>{
+      if(String(col.domain||'').toLowerCase()==='monsters' && Array.isArray(col.entries)){
+        col.entries.forEach(e=>{ if(e&&e.name) out.push(Object.assign({},e,{_list:col.name||'',_domain:'Monsters'})); });
+      }
+    });
+    const seen=new Set(), res=[];
+    out.forEach(e=>{ const k=String(e.name).trim(); if(!seen.has(k)){seen.add(k);res.push(e);} });
+    res.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    return res;
+  }
   const det=detectCodex(); if(!det) return [];
   const match=DOMAIN_MATCH[cat]; const out=[];
   det.data.collections.forEach(c=>{
