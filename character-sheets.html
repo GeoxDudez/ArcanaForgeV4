@@ -1026,8 +1026,8 @@ function headerHTML(c){
       <div class="hdr-names">
         <div class="nm"><textarea class="nm-input" data-f="name" rows="1" spellcheck="false">${esc(c.name)}</textarea></div>
         <div class="hdr-meta">
-          <span class="meta-item"><span class="ml">Species</span><input class="edit" data-f="species" value="${esc(c.species)}"></span>
-          <span class="meta-item"><span class="ml">Class</span><input class="edit" data-f="clazz" value="${esc(c.clazz)}"></span>
+          <span class="meta-item"><span class="ml">Species${metaPickBtn('species','Species')}</span><input class="edit" data-f="species" value="${esc(c.species)}"></span>
+          <span class="meta-item"><span class="ml">Class${metaPickBtn('clazz','Class')}</span><input class="edit" data-f="clazz" value="${esc(c.clazz)}"></span>
           <span class="meta-item lvl"><span class="ml">Lvl</span><input class="edit" data-f="level" type="number" value="${esc(c.level)}"></span>
           <span class="faint">· Prof ${fmt(prof(c))}</span>
         </div>
@@ -1466,6 +1466,10 @@ function featuresTab(c){
   return head + `<button class="add-link" data-add="feature" style="margin-bottom:10px">+ Add Feature / Trait</button>` + body;
 }
 
+function metaPickBtn(field,label){
+  const kw = field==='species' ? 'species,lineage,ancestry,race' : 'class,classes';
+  return ` <button class="bg-pick" data-metapick="${field}" data-metalabel="${label}" data-metakw="${kw}" title="Look up in the Codex">⌕ Codex</button>`;
+}
 function bgPickBtn(field,label,o){
   o=o||{}; if(!o.kw) return '';
   return ` <button class="bg-pick" data-bgpick="${esc(field)}" data-bglabel="${esc(label)}" data-bgkw="${esc(o.kw)}" data-bgappend="${o.append?1:0}" data-bgdetails="${o.details?1:0}" data-bgmode="${esc(o.mode||'broad')}" data-bgsep="${esc(o.sep||'nl')}" title="Search the Codex">⌕ Codex</button>`;
@@ -1509,6 +1513,7 @@ function extrasTab(c){
 }
 
 function rerenderTab(){ const b=$('#tabBody'); if(b && current) b.innerHTML = tabContent(current); }
+function rerenderHeader(){ if(current) renderSheet(); }
 
 /* =====================================================================
    EVENT WIRING (delegated where possible)
@@ -1625,6 +1630,10 @@ function onSheetClick(e){
   // open a Background-field Codex picker
   const bgp=t.closest('[data-bgpick]');
   if(bgp){ openFieldPick(bgp.dataset.bgpick, bgp.dataset.bglabel||bgp.dataset.bgpick, {kw:bgp.dataset.bgkw||'', append:bgp.dataset.bgappend==='1', details:bgp.dataset.bgdetails==='1', mode:bgp.dataset.bgmode||'broad', sep:bgp.dataset.bgsep||'nl'}); return; }
+
+  // open a Species/Class (meta) Codex picker
+  const mp=t.closest('[data-metapick]');
+  if(mp){ const isClass=mp.dataset.metapick==='clazz'; openFieldPick(mp.dataset.metapick, mp.dataset.metalabel||mp.dataset.metapick, {kw:isClass?'class':mp.dataset.metakw||'', target:'meta', mode:isClass?'domainNames':'broad'}); return; }
 
   // reset a panel's size
   const rsz=t.closest('[data-resetsize]');
@@ -2197,6 +2206,24 @@ function codexFieldEntries(keywords, opts){
   const det=detectCodex(); if(!det) return [];
   const kw=keywords.map(k=>String(k).toLowerCase().trim()).filter(Boolean);
   const collect=[];
+  if(mode==='domainNames'){
+    // one entry per LIST whose DOMAIN matches a keyword — e.g. every class name under the Classes domain
+    const out=[];
+    det.data.collections.forEach(col=>{
+      const dom=String(col.domain||'').toLowerCase();
+      if(kw.some(k=>cfeWordHit(dom,k)) && col.name){
+        // pull a short description from an overview entry if the list has one
+        let desc='';
+        if(Array.isArray(col.entries)){
+          const ov=col.entries.find(e=>e&&e.name&&/overview|about|summary/i.test(e.name));
+          if(ov&&ov.desc) desc=ov.desc;
+        }
+        out.push({name:col.name, desc:desc, _list:col.domain||'', _domain:col.domain||''});
+      }
+    });
+    out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    return out;
+  }
   if(mode==='list'){
     // Precise: match the LIST NAME only, in tiers (exact wins over starts-with wins over word-anywhere).
     const tiers={1:[],2:[],3:[]};
@@ -2242,7 +2269,7 @@ function codexFieldEntries(keywords, opts){
 let fpState=null, fpView=[];
 function openFieldPick(field, label, o){
   o=o||{};
-  fpState={field, append:!!o.append, details:!!o.details, mode:o.mode||'broad', sep:o.sep||'nl', kws:String(o.kw||field).split(',').map(x=>x.trim()).filter(Boolean), label};
+  fpState={field, target:o.target||'background', append:!!o.append, details:!!o.details, mode:o.mode||'broad', sep:o.sep||'nl', kws:String(o.kw||field).split(',').map(x=>x.trim()).filter(Boolean), label};
   const tEl=$('#fpTitle'); if(tEl) tEl.textContent='Codex \u2014 '+label;
   const inp=$('#fpInput'); if(inp) inp.value='';
   $('#fieldPickBg').classList.add('open');
@@ -2267,6 +2294,12 @@ function fpPick(i){
   if(!fpState||!current) return;
   const e=fpView[i]; if(!e) return;
   const nm=String(e.name||'').trim(); const ds=String(e.desc||'').trim();
+  if(fpState.target==='meta'){
+    // top-level field (species / clazz): just the name, kept clean for the header
+    current[fpState.field] = nm;
+    save(); rerenderHeader(); closeFieldPick(); toast(fpState.label+' set from Codex');
+    return;
+  }
   const text = (fpState.details && ds && ds!==nm) ? (nm+' \u2014 '+ds) : nm;
   const cur=String(current.background[fpState.field]||'');
   const sep = fpState.sep==='comma' ? ', ' : '\n';
