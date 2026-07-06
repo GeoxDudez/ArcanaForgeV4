@@ -127,6 +127,31 @@
     if (error) throw error;
   }
 
+  /* ---------- note reactions (composite-key table) ---------- */
+  async function addReaction(noteId, emoji) {
+    const l = link();
+    const user = await ensureAuth();
+    const { error } = await db().from('note_reactions').insert({
+      note_id: noteId, campaign_id: l.campaign_id, user_id: user.id,
+      reactor_name: l.display_name || '', emoji: emoji
+    });
+    if (error && error.code !== '23505') throw error;   // ignore duplicate
+  }
+  async function removeReaction(noteId, emoji) {
+    const user = await ensureAuth();
+    const { error } = await db().from('note_reactions').delete()
+      .eq('note_id', noteId).eq('user_id', user.id).eq('emoji', emoji);
+    if (error) throw error;
+  }
+  async function fetchReactions() {
+    const l = link();
+    await ensureAuth();
+    const { data, error } = await db().from('note_reactions').select('*')
+      .eq('campaign_id', l.campaign_id);
+    if (error) throw error;
+    return data;
+  }
+
 
   async function fetchRecent(table, limit) {
     const l = link();
@@ -187,6 +212,7 @@
     configured, isLinked, isGM, link, ensureAuth,
     createCampaign, joinCampaign, leaveCampaign, members,
     fetchAll, fetchRecent, insert, update, remove, onChange,
+    addReaction, removeReaction, fetchReactions,
     getDoc, putDoc, onDoc
   };
 })();

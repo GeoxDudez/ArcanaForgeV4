@@ -440,6 +440,29 @@ select.finp option{background:var(--bg-2)}
     .pb-meta .pb-dm{border:1px solid #7e2226;color:#d98a8d;border-radius:99px;padding:2px 10px;letter-spacing:.08em}
     .pb-meta button{background:none;border:0;color:#6f6c63;cursor:pointer;font-size:.78rem;font-family:inherit;padding:2px 4px}
     .pb-meta button:hover{color:#e3b352}
+    /* reactions */
+    .pb-reacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;align-items:center}
+    .pb-react{display:inline-flex;align-items:center;gap:5px;border:1px solid #2a2f3d;background:#0d1017;border-radius:99px;
+      padding:3px 10px;font-size:.86rem;cursor:pointer;font-family:inherit;color:#d5d1c6;transition:.12s;position:relative}
+    .pb-react:hover{border-color:#9c7d3c}
+    .pb-react.mine{border-color:#9c7d3c;background:rgba(227,179,82,.12);color:#e3b352}
+    .pb-react .rc{font-size:.76rem;font-variant-numeric:tabular-nums;color:#9aa0ad}
+    .pb-react.mine .rc{color:#e3b352}
+    .pb-addreact{border:1px dashed #2a2f3d;background:none;color:#6f6c63;border-radius:99px;width:28px;height:26px;
+      cursor:pointer;font-size:.9rem;line-height:1;transition:.12s}
+    .pb-addreact:hover{border-color:#9c7d3c;color:#e3b352}
+    /* who-reacted tooltip */
+    .pb-react .who{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+      background:#0a0c11;border:1px solid #2a2f3d;border-radius:8px;padding:7px 11px;font-size:.76rem;color:#d5d1c6;
+      white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;
+      transition:.13s;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+    .pb-react .who b{color:#e3b352;font-weight:600}
+    .pb-react:hover .who{opacity:1}
+    /* emoji picker popover */
+    .pb-picker{position:absolute;z-index:60;background:#181b24;border:1px solid #9c7d3c;border-radius:12px;
+      padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
+    .pb-picker button{width:34px;height:34px;font-size:1.2rem;border:0;background:none;border-radius:8px;cursor:pointer;line-height:1}
+    .pb-picker button:hover{background:rgba(227,179,82,.14)}
     .pb-empty{text-align:center;color:#6f6c63;padding:44px 20px}
     .pb-empty .ico{font-size:2rem;margin-bottom:10px}
   </style>
@@ -1263,16 +1286,72 @@ function pbRender(){
           <button onclick="pbEdit('${n.id}')">Edit</button>
           <button onclick="pbDelete('${n.id}')">Delete</button>` : ''}
       </div>
+      ${pbReactBar(n.id)}
     </div>`;
   }).join('');
+}
+
+/* ---- reactions (Discord-style) ---- */
+const PB_EMOJI = ['👍','❤️','😂','😮','😢','🔥','🎲','⚔️','🛡️','✨','💀','🍺'];
+let pbReacts = {};   // { noteId: [ {user_id, reactor_name, emoji} ] }
+let pbMyId = null;
+
+function pbReactBar(noteId){
+  const rs = pbReacts[noteId] || [];
+  const byEmoji = {};
+  rs.forEach(r=>{ (byEmoji[r.emoji]=byEmoji[r.emoji]||[]).push(r); });
+  const pills = Object.keys(byEmoji).map(em=>{
+    const list = byEmoji[em];
+    const mine = list.some(r=>r.user_id===pbMyId);
+    const names = list.map(r=>esc(r.reactor_name||'Someone')).join(', ');
+    return `<button class="pb-react ${mine?'mine':''}" onclick="pbToggleReact('${noteId}','${em}')">
+        ${em}<span class="rc">${list.length}</span>
+        <span class="who"><b>${em}</b> ${names}</span></button>`;
+  }).join('');
+  return `<div class="pb-reacts">${pills}<button class="pb-addreact" onclick="pbOpenPicker(event,'${noteId}')" title="Add a reaction">＋</button></div>`;
+}
+
+async function pbToggleReact(noteId, emoji){
+  const mine = (pbReacts[noteId]||[]).some(r=>r.user_id===pbMyId && r.emoji===emoji);
+  try{
+    if(mine) await AFSync.removeReaction(noteId, emoji);
+    else     await AFSync.addReaction(noteId, emoji);
+    await pbFetchReacts(); pbRender();
+  }catch(e){ toast('⚠ Could not update reaction.'); }
+}
+
+async function pbFetchReacts(){
+  try{
+    const rows = await AFSync.fetchReactions();
+    const map = {};
+    rows.forEach(r=>{ (map[r.note_id]=map[r.note_id]||[]).push(r); });
+    pbReacts = map;
+  }catch(e){}
+}
+
+function pbOpenPicker(ev, noteId){
+  ev.stopPropagation();
+  document.querySelectorAll('.pb-picker').forEach(p=>p.remove());
+  const pop = document.createElement('div');
+  pop.className='pb-picker';
+  pop.innerHTML = PB_EMOJI.map(em=>`<button onclick="pbToggleReact('${noteId}','${em}');this.closest('.pb-picker').remove()">${em}</button>`).join('');
+  document.body.appendChild(pop);
+  const r = ev.target.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, window.innerWidth-230)+'px';
+  pop.style.top = (r.bottom+6+window.scrollY)+'px';
+  setTimeout(()=>document.addEventListener('click', function close(e){
+    if(!pop.contains(e.target)){ pop.remove(); document.removeEventListener('click', close); }
+  }),0);
 }
 
 async function pbFetch(){
   if (!PB_LINKED) return;
   try{
     const user = await AFSync.ensureAuth();
+    pbMyId = user.id;
     const rows = await AFSync.fetchAll('campaign_notes', 'created_at');
     pbNotes = rows.reverse().map(n => ({ ...n, _mine: n.author_id === user.id }));
+    await pbFetchReacts();
     pbRender();
   }catch(e){ toast('⚠ Could not load the Party Board.'); }
 }
@@ -1345,6 +1424,7 @@ async function pbDelete(id){
   });
   pbFetch();
   AFSync.onChange('campaign_notes', pbFetchSoon);
+  AFSync.onChange('note_reactions', ()=>{ clearTimeout(pbFetchT); pbFetchT = setTimeout(async()=>{ await pbFetchReacts(); pbRender(); }, 200); });
 })();
 
 /* init */
