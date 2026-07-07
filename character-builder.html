@@ -108,6 +108,40 @@ input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
   background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--gold);color:var(--txt);
   padding:11px 20px;border-radius:11px;font-size:.88rem;box-shadow:var(--shadow);transition:.25s;pointer-events:none;max-width:90vw}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== Name Forge modal ===== */
+.nf-overlay{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;
+  background:rgba(5,6,10,.74);backdrop-filter:blur(3px);padding:20px}
+.nf-overlay.show{display:flex}
+.nf-modal{width:min(760px,94vw);max-height:88vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--panel),#14161e);border:1px solid var(--gold-dim);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.nf-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.nf-head h3{font-family:var(--font-display);font-weight:600;font-size:1.1rem;letter-spacing:.07em;color:var(--gold);flex:1}
+.nf-x{background:none;border:1px solid var(--line);color:var(--txt-dim);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:.95rem;line-height:1}
+.nf-x:hover{color:var(--gold);border-color:var(--gold-dim)}
+.nf-preview{text-align:center;padding:15px 20px;border-bottom:1px solid var(--line-soft);background:var(--bg-1)}
+.nf-preview .pv{font-family:var(--font-display);font-weight:700;font-size:1.5rem;letter-spacing:.03em;color:var(--gold-soft);min-height:1.6em;word-break:break-word}
+.nf-preview .pv .fam{color:var(--txt)}
+.nf-preview .sub{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint);margin-top:4px}
+.nf-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px 20px;overflow:auto}
+@media(max-width:620px){.nf-cols{grid-template-columns:1fr}}
+.nf-col{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line-soft);border-radius:11px;background:var(--bg-1);padding:12px}
+.nf-col h4{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim);font-weight:700;margin-bottom:8px}
+.nf-col select{width:100%;margin-bottom:8px;font-size:.85rem}
+.nf-filter{width:100%;margin-bottom:8px;padding:7px 10px;font-size:.82rem}
+.nf-list{overflow:auto;max-height:230px;display:flex;flex-direction:column;gap:5px;padding-right:2px}
+.nf-name{padding:7px 11px;border:1px solid transparent;border-radius:8px;background:var(--bg-0);cursor:pointer;
+  font-size:.9rem;transition:.1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-name:hover{border-color:var(--gold-dim);color:var(--gold-soft)}
+.nf-name.on{border-color:var(--gold);color:var(--gold);background:rgba(227,179,82,.09);font-weight:600}
+.nf-empty{color:var(--txt-faint);font-size:.82rem;text-align:center;padding:22px 8px}
+.nf-colfoot{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.nf-colfoot .cnt{font-size:.72rem;color:var(--txt-faint)}
+.nf-reroll{border:1px solid var(--line);background:none;color:var(--txt-dim);border-radius:8px;padding:5px 11px;font-size:.78rem;cursor:pointer}
+.nf-reroll:hover{color:var(--gold);border-color:var(--gold-dim)}
+.nf-foot{display:flex;gap:10px;align-items:center;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.nf-foot .spacer{flex:1}
 </style>
 </head>
 <body>
@@ -146,7 +180,10 @@ input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
     <div class="row">
       <div style="flex:2"><label class="f">Name</label><input id="nameIn" placeholder="Forge one, or roll the dice →" maxlength="60"></div>
       <div><label class="f">Name style</label><select id="nameStyle"><option value="any">Any</option><option value="Female">Feminine</option><option value="Male">Masculine</option></select></div>
-      <div style="flex:0"><button class="btn" id="nameBtn" title="Suggest a name from your Codex name tables">🎲 Suggest</button></div>
+      <div style="flex:0;display:flex;gap:8px;align-items:flex-end;white-space:nowrap">
+        <button class="btn" id="nameBtn" title="Instantly roll a full name from your Codex name tables">🎲 Suggest</button>
+        <button class="btn" id="nameBrowseBtn" title="Browse and pick a first &amp; last name from the Codex">📖 Browse</button>
+      </div>
     </div>
   </div>
 
@@ -204,6 +241,42 @@ input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
   <div class="nav-foot">
     <button class="btn ghost" id="backBtn" disabled>← Back</button>
     <button class="btn gold" id="nextBtn">Next →</button>
+  </div>
+</div>
+
+<!-- ===== Name Forge modal ===== -->
+<div class="nf-overlay" id="nfOverlay" aria-hidden="true">
+  <div class="nf-modal" role="dialog" aria-modal="true" aria-label="Name Forge">
+    <div class="nf-head">
+      <h3>⚒ The Name Forge</h3>
+      <button class="nf-x" id="nfClose" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="nf-preview">
+      <div class="pv" id="nfPreview">—</div>
+      <div class="sub" id="nfPreviewSub">Pick a first &amp; last name below</div>
+    </div>
+    <div class="nf-cols">
+      <div class="nf-col">
+        <h4>First Name</h4>
+        <select id="nfFirstSel" title="Which Codex list to draw a first name from"></select>
+        <input class="nf-filter" id="nfFirstFilter" placeholder="Filter names…" maxlength="30">
+        <div class="nf-list" id="nfFirstList"></div>
+        <div class="nf-colfoot"><span class="cnt" id="nfFirstCnt"></span><button class="nf-reroll" id="nfFirstRoll">🎲 Reroll first</button></div>
+      </div>
+      <div class="nf-col">
+        <h4>Last Name</h4>
+        <select id="nfLastSel" title="Which Codex family / clan list to draw a last name from"></select>
+        <input class="nf-filter" id="nfLastFilter" placeholder="Filter names…" maxlength="30">
+        <div class="nf-list" id="nfLastList"></div>
+        <div class="nf-colfoot"><span class="cnt" id="nfLastCnt"></span><button class="nf-reroll" id="nfLastRoll">🎲 Reroll last</button></div>
+      </div>
+    </div>
+    <div class="nf-foot">
+      <button class="btn" id="nfRandomAll" title="Roll a full random name from your heritage's Codex lists">🎲 Randomize All</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="nfCancel">Cancel</button>
+      <button class="btn gold" id="nfUse">Use This Name</button>
+    </div>
   </div>
 </div>
 
@@ -325,6 +398,99 @@ function suggestName(){
   const family=fam&&fam.entries.length?' '+eName(fam.entries[Math.floor(Math.random()*fam.entries.length)]):'';
   $('#nameIn').value=(given+family).trim();
   state.name=$('#nameIn').value;
+}
+
+/* ---------- Name Forge (browse & pick first + last names) ---------- */
+const NF={ first:{coll:null,name:''}, last:{coll:null,name:''}, fF:'', fL:'' };
+const NF_SURNAME=/clan|family|surname|virtue/i;
+const nfBase=c=>String(c&&c.name||'').split(',')[0].trim();
+function nfKeyStamp(){ if(!LIB) return; LIB.collections.forEach((c,i)=>{ if(c.domain==='Names'&&!c._nfKey) c._nfKey=c.id||('nfk'+i); }); }
+function nfByKey(k){ return LIB?LIB.collections.find(c=>c.domain==='Names'&&c._nfKey===k):null; }
+function nfGiven(){ return lists('Names').filter(c=>Array.isArray(c.entries)&&c.entries.length&&!NF_SURNAME.test(c.name)); }
+function nfSurRaw(){ return lists('Names').filter(c=>Array.isArray(c.entries)&&c.entries.length&&NF_SURNAME.test(c.name)); }
+function nfDedupe(arr){ const seen=new Set(),out=[]; for(const c of arr){ const sig=(c.entries||[]).slice(0,5).map(eName).join('|'); if(seen.has(sig))continue; seen.add(sig); out.push(c);} return out; }
+function nfSpeciesBases(){ const c=byName('Traits','Species'); const s=new Set(); if(c)(c.entries||[]).forEach(e=>{const b=eName(e).split(' ')[0].toLowerCase(); if(b)s.add(b);}); return s; }
+function nfPick(c){ return (c&&c.entries&&c.entries.length)?eName(c.entries[Math.floor(Math.random()*c.entries.length)]):''; }
+function nfSelBase(){ return String(state.species||'').split(' ')[0].toLowerCase(); }
+
+function nfDefaultFirst(){
+  const gl=nfGiven(), base=nfSelBase(), style=$('#nameStyle').value;
+  let matched=gl.filter(c=>nfBase(c).toLowerCase()===base);
+  if(style!=='any'){ const s=matched.filter(c=>new RegExp(style,'i').test(c.name)); if(s.length)matched=s; }
+  const pool=matched.length?matched:gl;
+  return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;
+}
+function nfDefaultLast(){
+  const base=nfSelBase(), sl=nfDedupe(nfSurRaw());
+  return sl.find(c=>nfBase(c).toLowerCase()===base)||null;
+}
+function nfOptLabel(c){ return esc(String(c.name).replace(/\s*,\s*/,' · ')); }
+function nfFirstSelectHTML(){
+  const gl=nfGiven(), base=nfSelBase(), spB=nfSpeciesBases();
+  const g={match:[],her:[],cul:[]};
+  gl.forEach(c=>{ const b=nfBase(c).toLowerCase(); g[b===base?'match':(spB.has(b)?'her':'cul')].push(c); });
+  const cur=NF.first.coll?NF.first.coll._nfKey:'';
+  const blk=(lbl,a)=>a.length?`<optgroup label="${esc(lbl)}">`+a.map(c=>`<option value="${esc(c._nfKey)}"${c._nfKey===cur?' selected':''}>${nfOptLabel(c)}</option>`).join('')+'</optgroup>':'';
+  return blk('★ Matches your heritage',g.match)+blk('Fantasy heritages',g.her)+blk('Real-world cultures',g.cul);
+}
+function nfLastSelectHTML(){
+  const sl=nfDedupe(nfSurRaw()), base=nfSelBase();
+  const m=[],o=[]; sl.forEach(c=>(nfBase(c).toLowerCase()===base?m:o).push(c));
+  const cur=NF.last.coll?NF.last.coll._nfKey:'';
+  const opt=c=>`<option value="${esc(c._nfKey)}"${c._nfKey===cur?' selected':''}>${nfOptLabel(c)}</option>`;
+  let h=`<option value=""${cur===''?' selected':''}>— None (single name) —</option>`;
+  if(m.length)h+=`<optgroup label="★ Matches your heritage">`+m.map(opt).join('')+'</optgroup>';
+  if(o.length)h+=`<optgroup label="Family / clan names">`+o.map(opt).join('')+'</optgroup>';
+  return h;
+}
+function nfRows(coll,filter,sel){
+  if(!coll) return '<div class="nf-empty">Single name — no family name.</div>';
+  const f=filter.trim().toLowerCase();
+  const items=(coll.entries||[]).map(eName).filter(n=>n&&(!f||n.toLowerCase().includes(f)));
+  if(!items.length) return '<div class="nf-empty">No names match your filter.</div>';
+  return items.map(n=>`<div class="nf-name${n===sel?' on':''}" data-n="${esc(n)}">${esc(n)}</div>`).join('');
+}
+function nfRenderLists(){
+  $('#nfFirstList').innerHTML=nfRows(NF.first.coll,NF.fF,NF.first.name);
+  $('#nfLastList').innerHTML=nfRows(NF.last.coll,NF.fL,NF.last.name);
+  const fc=NF.first.coll?(NF.first.coll.entries||[]).length:0;
+  const lc=NF.last.coll?(NF.last.coll.entries||[]).length:0;
+  $('#nfFirstCnt').textContent=fc?fc+' names':'';
+  $('#nfLastCnt').textContent=lc?lc+' names':'';
+  const s1=$('#nfFirstList').querySelector('.nf-name.on'); if(s1)s1.scrollIntoView({block:'nearest'});
+  const s2=$('#nfLastList').querySelector('.nf-name.on'); if(s2)s2.scrollIntoView({block:'nearest'});
+}
+function nfRenderPreview(){
+  const f=esc(NF.first.name||''), l=esc(NF.last.name||'');
+  $('#nfPreview').innerHTML=(f||l)?(f+(l?` <span class="fam">${l}</span>`:'')):'—';
+  $('#nfPreviewSub').textContent=(f||l)?'Your forged name':'Pick a first & last name below';
+}
+function nfRenderSelects(){ $('#nfFirstSel').innerHTML=nfFirstSelectHTML(); $('#nfLastSel').innerHTML=nfLastSelectHTML(); }
+function nfRenderAll(){ nfRenderSelects(); nfRenderLists(); nfRenderPreview(); }
+
+function openNameForge(){
+  if(!LIB){ toast('No Codex loaded'); return; }
+  if(!state.species){ toast('Pick a heritage first'); return; }
+  nfKeyStamp();
+  if(!nfGiven().length){ toast('No name tables in the Codex'); return; }
+  NF.fF=''; NF.fL='';
+  NF.first.coll=nfDefaultFirst(); NF.first.name=nfPick(NF.first.coll);
+  NF.last.coll=nfDefaultLast();  NF.last.name=NF.last.coll?nfPick(NF.last.coll):'';
+  $('#nfFirstFilter').value=''; $('#nfLastFilter').value='';
+  nfRenderAll();
+  $('#nfOverlay').classList.add('show'); $('#nfOverlay').setAttribute('aria-hidden','false');
+}
+function closeNameForge(){ $('#nfOverlay').classList.remove('show'); $('#nfOverlay').setAttribute('aria-hidden','true'); }
+function nfRandomizeAll(){
+  NF.first.coll=nfDefaultFirst(); NF.first.name=nfPick(NF.first.coll);
+  NF.last.coll=nfDefaultLast();  NF.last.name=NF.last.coll?nfPick(NF.last.coll):'';
+  NF.fF=''; NF.fL=''; $('#nfFirstFilter').value=''; $('#nfLastFilter').value='';
+  nfRenderAll();
+}
+function nfApply(){
+  const nm=((NF.first.name||'')+' '+(NF.last.name||'')).trim();
+  if(!nm){ toast('Pick at least a first name'); return; }
+  $('#nameIn').value=nm; state.name=nm; closeNameForge(); toast('Name set: '+nm);
 }
 
 /* ---------- step 2: class ---------- */
@@ -512,6 +678,21 @@ function canAdvance(){
 $('#spGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-sp]'); if(p) pickSpecies(p.dataset.sp); });
 $('#subSel')?.addEventListener('change',e=>state.sub=e.target.value);
 $('#nameBtn').addEventListener('click',suggestName);
+$('#nameBrowseBtn').addEventListener('click',openNameForge);
+$('#nfClose').addEventListener('click',closeNameForge);
+$('#nfCancel').addEventListener('click',closeNameForge);
+$('#nfOverlay').addEventListener('click',e=>{ if(e.target===$('#nfOverlay')) closeNameForge(); });
+$('#nfUse').addEventListener('click',nfApply);
+$('#nfRandomAll').addEventListener('click',nfRandomizeAll);
+$('#nfFirstSel').addEventListener('change',e=>{ NF.first.coll=nfByKey(e.target.value)||null; NF.first.name=nfPick(NF.first.coll); NF.fF=''; $('#nfFirstFilter').value=''; nfRenderLists(); nfRenderPreview(); });
+$('#nfLastSel').addEventListener('change',e=>{ NF.last.coll=nfByKey(e.target.value)||null; NF.last.name=NF.last.coll?nfPick(NF.last.coll):''; NF.fL=''; $('#nfLastFilter').value=''; nfRenderLists(); nfRenderPreview(); });
+$('#nfFirstFilter').addEventListener('input',e=>{ NF.fF=e.target.value; nfRenderLists(); });
+$('#nfLastFilter').addEventListener('input',e=>{ NF.fL=e.target.value; nfRenderLists(); });
+$('#nfFirstList').addEventListener('click',e=>{ const el=e.target.closest('[data-n]'); if(el){ NF.first.name=el.dataset.n; nfRenderLists(); nfRenderPreview(); } });
+$('#nfLastList').addEventListener('click',e=>{ const el=e.target.closest('[data-n]'); if(el){ NF.last.name=el.dataset.n; nfRenderLists(); nfRenderPreview(); } });
+$('#nfFirstRoll').addEventListener('click',()=>{ NF.first.name=nfPick(NF.first.coll); NF.fF=''; $('#nfFirstFilter').value=''; nfRenderLists(); nfRenderPreview(); });
+$('#nfLastRoll').addEventListener('click',()=>{ if(NF.last.coll){ NF.last.name=nfPick(NF.last.coll); NF.fL=''; $('#nfLastFilter').value=''; nfRenderLists(); nfRenderPreview(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#nfOverlay').classList.contains('show')) closeNameForge(); });
 $('#clGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-cl]'); if(p) pickClass(p.dataset.cl); });
 $('#bgGrid').addEventListener('click',e=>{ const p=e.target.closest('[data-bg]'); if(p) pickBackground(p.dataset.bg); });
 $('#bgSearch').addEventListener('input',renderBackgrounds);
