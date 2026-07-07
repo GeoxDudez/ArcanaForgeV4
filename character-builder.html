@@ -131,8 +131,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
 .nf-col select{width:100%;margin-bottom:8px;font-size:.85rem}
 .nf-filter{width:100%;margin-bottom:8px;padding:7px 10px;font-size:.82rem}
 .nf-list{overflow:auto;max-height:230px;display:flex;flex-direction:column;gap:5px;padding-right:2px}
-.nf-name{padding:7px 11px;border:1px solid transparent;border-radius:8px;background:var(--bg-0);cursor:pointer;
-  font-size:.9rem;transition:.1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf-name{flex:0 0 auto;min-height:34px;display:flex;align-items:center;padding:7px 11px;border:1px solid transparent;border-radius:8px;background:var(--bg-0);cursor:pointer;
+  font-size:.9rem;line-height:1.2;transition:.1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nf-name:hover{border-color:var(--gold-dim);color:var(--gold-soft)}
 .nf-name.on{border-color:var(--gold);color:var(--gold);background:rgba(227,179,82,.09);font-weight:600}
 .nf-empty{color:var(--txt-faint);font-size:.82rem;text-align:center;padding:22px 8px}
@@ -180,7 +180,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold-dim)}
     <div class="row">
       <div style="flex:2"><label class="f">Name</label><input id="nameIn" placeholder="Forge one, or roll the dice →" maxlength="60"></div>
       <div><label class="f">Name style</label><select id="nameStyle"><option value="any">Any</option><option value="Female">Feminine</option><option value="Male">Masculine</option></select></div>
-      <div style="flex:0;display:flex;gap:8px;align-items:flex-end;white-space:nowrap">
+      <div style="flex:0 0 auto;min-width:0;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <button class="btn" id="nameBtn" title="Instantly roll a full name from your Codex name tables">🎲 Suggest</button>
         <button class="btn" id="nameBrowseBtn" title="Browse and pick a first &amp; last name from the Codex">📖 Browse</button>
       </div>
@@ -434,13 +434,16 @@ function nfFirstSelectHTML(){
   return blk('★ Matches your heritage',g.match)+blk('Fantasy heritages',g.her)+blk('Real-world cultures',g.cul);
 }
 function nfLastSelectHTML(){
-  const sl=nfDedupe(nfSurRaw()), base=nfSelBase();
+  const sl=nfDedupe(nfSurRaw()), base=nfSelBase(), spB=nfSpeciesBases();
   const m=[],o=[]; sl.forEach(c=>(nfBase(c).toLowerCase()===base?m:o).push(c));
+  // real-world culture given-name lists, usable as a second / last name
+  const cul=nfGiven().filter(c=>{ const b=nfBase(c).toLowerCase(); return b!==base && !spB.has(b); });
   const cur=NF.last.coll?NF.last.coll._nfKey:'';
   const opt=c=>`<option value="${esc(c._nfKey)}"${c._nfKey===cur?' selected':''}>${nfOptLabel(c)}</option>`;
   let h=`<option value=""${cur===''?' selected':''}>— None (single name) —</option>`;
   if(m.length)h+=`<optgroup label="★ Matches your heritage">`+m.map(opt).join('')+'</optgroup>';
   if(o.length)h+=`<optgroup label="Family / clan names">`+o.map(opt).join('')+'</optgroup>';
+  if(cul.length)h+=`<optgroup label="Real-world cultures">`+cul.map(opt).join('')+'</optgroup>';
   return h;
 }
 function nfRows(coll,filter,sel){
