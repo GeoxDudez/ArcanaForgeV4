@@ -121,9 +121,6 @@ header.top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 
 .chip{font-size:11.5px;color:var(--txt-soft);background:var(--panel-2);border:1px solid var(--line-soft);border-radius:8px;padding:4px 10px}
 .chip.tag{color:var(--txt-faint);letter-spacing:.5px;text-transform:uppercase;font-size:10px}
 .room-trap{margin-top:10px;font-size:12.5px;color:var(--blood);display:flex;align-items:center;gap:7px}
-.room-trap .gmv{filter:blur(5px);user-select:none}
-body.gm-mode .room-trap .gmv{filter:none;user-select:auto}
-.gmtag{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--blood);border:1px solid var(--blood-dim);border-radius:99px;padding:2px 7px;margin-left:4px}
 .room-conn{margin-top:9px;font-size:12px;color:var(--txt-faint);line-height:1.6}
 .room-conn b{color:var(--gold-soft);font-weight:500}
 
@@ -192,8 +189,6 @@ input[type=file]{display:none}
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>Export</button>
       <button class="btn ghost" id="importLogBtn" title="Import saved dungeons">
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 16V4m0 0l4 4m-4-4l-4 4"/></svg>Import</button>
-      <div class="gm" id="gmToggle" title="GM Mode reveals traps and hidden dangers">
-        <span class="lab">GM</span><div class="switch" id="gmSwitch"></div></div>
       <input type="file" id="codexImport" accept="application/json">
       <input type="file" id="logImport" accept="application/json">
     </div>
@@ -214,7 +209,7 @@ input[type=file]{display:none}
         <svg viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5z"/></svg>
         Generate Dungeon
       </button>
-      <p class="hint">Press <kbd>Space</kbd> or <kbd>G</kbd> to generate · toggle <kbd>GM</kbd> to reveal traps</p>
+      <p class="hint">Press <kbd>Space</kbd> or <kbd>G</kbd> to generate</p>
     </div>
   </aside>
 
@@ -239,7 +234,7 @@ input[type=file]{display:none}
    never really "data" so much as generation nuance.
    ===================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const ROSTER_KEY='dnd-dungeongen-roster-v1', GM_KEY='dnd-dungeongen-gm-v1';
+const ROSTER_KEY='dnd-dungeongen-roster-v1';
 
 /* generation nuance — keyed by dungeon TYPE NAME (as it appears in the Codex) */
 const LIGHTING_BY_TYPE={
@@ -261,7 +256,6 @@ const TIME_ESTIMATE={small:'1-2 hours',medium:'2-4 hours',large:'4-6 hours',huge
 
 /* ---- state ---- */
 let library=null, dungeon=null, roster=loadRoster();
-let gmMode=localStorage.getItem(GM_KEY)==='1';
 
 /* =====================================================================
    CODEX DATA
@@ -455,7 +449,7 @@ function renderRoom(r){
   const feats=r.features.map(f=>`<span class="chip">${esc(f)}</span>`).join('');
   const furn=r.furniture.map(f=>`<span class="chip">${esc(f)}</span>`).join('');
   const conns=(dungeon.connections[r.number]||[]).map(c=>`Room ${c.to} <b>via ${esc(c.via)}</b>`).join(' · ');
-  const trapHtml=r.trap?`<div class="room-trap">⚠ <span class="gmv">${esc(r.trap)}</span><span class="gmtag">GM</span></div>`:'';
+  const trapHtml=r.trap?`<div class="room-trap">⚠ <span>${esc(r.trap)}</span></div>`:'';
   return `<div class="room">
     <div class="room-head"><span class="room-num">№ ${r.number}</span><span class="room-type">${esc(r.type)}</span><span class="room-dims">${esc(r.dimensions)}</span></div>
     <div class="room-desc">${esc(r.description)}</div>
@@ -530,8 +524,6 @@ function copyCurrent(){
 /* =====================================================================
    GM / CODEX IMPORT / LOG EXPORT-IMPORT / MISC
    ===================================================================== */
-function applyGM(){document.body.classList.toggle('gm-mode',gmMode);$('#gmSwitch').classList.toggle('on',gmMode);}
-$('#gmToggle').onclick=()=>{gmMode=!gmMode;localStorage.setItem(GM_KEY,gmMode?'1':'0');applyGM();};
 $('#genBtn').onclick=generate;
 $('#loadCodexBtn').onclick=()=>$('#codexImport').click();
 $('#codexImport').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const lib=codexUnwrap(d);if(!lib){toast('That isn’t a Codex export.');return;}codexSaveSnapshot(lib);detectCodex();toast('Codex loaded · '+countEntries(lib).toLocaleString()+' entries.');renderDungeon();}catch(err){toast('Could not read that file.');}};r.readAsText(f);e.target.value='';});
@@ -543,7 +535,7 @@ let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add
 document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;if(e.code==='Space'||e.key.toLowerCase()==='g'){e.preventDefault();if(library)generate();}});
 
 /* init */
-applyGM();detectCodex();renderRoster();renderEmptyOrPrompt();
+detectCodex();renderRoster();renderEmptyOrPrompt();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!library)detectCodex();});
 </script>
 <script src="arcanaforge-quicksearch.js"></script>

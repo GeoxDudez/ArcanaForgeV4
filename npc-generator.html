@@ -146,12 +146,6 @@ header.top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 
 .fld .tools .minibtn{width:24px;height:24px;font-size:11px}
 .fld.full{grid-column:1/-1}
 
-/* GM secret */
-.gmhide .v{filter:blur(6px);user-select:none}
-body.gm-mode .gmhide .v{filter:none;user-select:auto}
-.gmtag{display:none;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--blood);border:1px solid var(--blood-dim);border-radius:99px;padding:2px 7px;margin-left:6px;vertical-align:middle}
-.gmhide .gmtag{display:inline-block}
-body.gm-mode .gmhide .gmtag{display:none}
 
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
@@ -243,8 +237,6 @@ input[type=file]{display:none}
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>Export</button>
       <button class="btn ghost" id="importRosterBtn" title="Import saved NPCs">
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 16V4m0 0l4 4m-4-4l-4 4"/></svg>Import</button>
-      <div class="gm" id="gmToggle" title="GM Mode reveals the flaw / secret">
-        <span class="lab">GM</span><div class="switch" id="gmSwitch"></div></div>
       <input type="file" id="codexImport" accept="application/json">
       <input type="file" id="rosterImport" accept="application/json">
     </div>
@@ -291,7 +283,7 @@ input[type=file]{display:none}
    ===================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const CFG_KEY='dnd-table-config-v1', CODEX_CACHE_KEY='dnd-table-codex-cache-v1';
-const NPC_CACHE_KEY='dnd-npcgen-codex-cache-v1', ROSTER_KEY='dnd-npcgen-roster-v2', GM_KEY='dnd-npcgen-gm-v1';
+const NPC_CACHE_KEY='dnd-npcgen-codex-cache-v1', ROSTER_KEY='dnd-npcgen-roster-v2';
 
 /* domain hints (flexible — your domain rename is handled by name-based search) */
 const NAME_DOMS=['Names','Name'];
@@ -343,7 +335,6 @@ const INV_CATS=[
 /* ---- state ---- */
 let library=null, npc={}, roster=loadRoster();
 let opts={includeInv:true, gearCount:5};
-let gmMode=localStorage.getItem(GM_KEY)==='1';
 
 /* =====================================================================
    CODEX DATA
@@ -504,9 +495,9 @@ function simpleRow(k){
   const f=SIMPLE_BY_KEY[k], d=npc[k];
   if(!d||!d.value||d.value==='—')return '';
   const desc=d.desc?`<span class="desc">${esc(d.desc)}</span>`:'';
-  const tag=f.gmOnly?'<span class="gmtag">GM</span>':'';
+  const tag='';
   const full=f.gmOnly?'full':'';
-  return `<div class="fld ${lockedK(k)?'locked':''} ${f.gmOnly?'gmhide':''} ${full}">
+  return `<div class="fld ${lockedK(k)?'locked':''} ${full}">
     <div><span class="k">${esc(f.label)}${tag}</span><div class="v">${esc(d.value)}${desc}</div></div>${tools(k)}</div>`;
 }
 function multiRow(k){
@@ -624,8 +615,6 @@ $('#genBtn').onclick=generate;
 $('#invToggle').onclick=()=>{opts.includeInv=!opts.includeInv;$('#invToggle').classList.toggle('on',opts.includeInv);$('#gearCountRow').style.opacity=opts.includeInv?'1':'.4';};
 $('#gearMinus').onclick=()=>{opts.gearCount=Math.max(0,opts.gearCount-1);$('#gearVal').textContent=opts.gearCount;};
 $('#gearPlus').onclick=()=>{opts.gearCount=Math.min(12,opts.gearCount+1);$('#gearVal').textContent=opts.gearCount;};
-function applyGM(){document.body.classList.toggle('gm-mode',gmMode);$('#gmSwitch').classList.toggle('on',gmMode);}
-$('#gmToggle').onclick=()=>{gmMode=!gmMode;localStorage.setItem(GM_KEY,gmMode?'1':'0');applyGM();};
 $('#loadCodexBtn').onclick=()=>$('#codexImport').click();
 $('#codexImport').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const lib=codexUnwrap(d);if(!lib){toast('That isn’t a Codex export.');return;}codexSaveSnapshot(lib);detectCodex();toast('Codex loaded · '+countEntries(lib).toLocaleString()+' entries.');if(!npc.species&&!npc.first)renderEmptyOrPrompt();}catch(err){toast('Could not read that file.');}};r.readAsText(f);e.target.value='';});
 $('#exportRosterBtn').onclick=()=>{if(!roster.length){toast('Roster is empty.');return;}download(JSON.stringify({app:'npc-generator',version:2,exported:new Date().toISOString(),npcs:roster},null,2),'npc-roster.json');toast('Roster exported.');};
@@ -640,7 +629,7 @@ let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add
 document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;if(e.code==='Space'||e.key.toLowerCase()==='g'){e.preventDefault();if(library)generate();}});
 
 /* init */
-applyGM();detectCodex();renderRoster();renderEmptyOrPrompt();
+detectCodex();renderRoster();renderEmptyOrPrompt();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!library)detectCodex();});
 </script>
 <script src="arcanaforge-quicksearch.js"></script>

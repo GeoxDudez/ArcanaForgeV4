@@ -233,8 +233,6 @@ select.fld:focus{outline:none; border-color:var(--gold-dim)}
 
 .card.lore .ch h4{color:#bba0d8}
 .card.spell .ch h4{color:#7fb0d8}
-.gm-only{display:none}
-body.gm-mode .gm-only{display:flex}
 .gmnote{font-size:11.5px; color:var(--blood); padding:4px 10px 9px; font-style:italic; line-height:1.4}
 
 /* stash drawer */
@@ -323,10 +321,6 @@ input[type=file]{display:none}
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>Export</button>
       <button class="btn ghost" id="importBtn" title="Import saved stashes">
         <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 16V4m0 0l4 4m-4-4l-4 4"/></svg>Import</button>
-      <div class="gm">
-        <span class="lab">GM</span>
-        <div class="switch" id="gmSwitch"></div>
-      </div>
     </div>
   </header>
 
@@ -741,9 +735,8 @@ function atmoPool(tag){ return namesOf(findList([ATMO_LISTS[tag]||tag])); }
 /* =====================================================================
    STATE
    ===================================================================== */
-const LS_OPT='shopgen_opts_v1', LS_STASH='shopgen_shops_v1', LS_GM='dnd_gm_mode';
+const LS_OPT='shopgen_opts_v1', LS_STASH='shopgen_shops_v1';
 let opts = loadOpts();
-let gmMode = localStorage.getItem(LS_GM)==='1';
 let current = null;
 let stash = loadStash();
 function loadOpts(){
@@ -1147,8 +1140,6 @@ $$('.tog').forEach(t=>t.onclick=()=>{ opts[t.dataset.key]=!opts[t.dataset.key]; 
 $('#genBtn').onclick=()=>generate(false);
 
 /* GM mode */
-function applyGM(){ document.body.classList.toggle('gm-mode',gmMode); $('#gmSwitch').classList.toggle('on',gmMode); }
-$('#gmSwitch').onclick=()=>{ gmMode=!gmMode; localStorage.setItem(LS_GM,gmMode?'1':'0'); applyGM(); };
 
 /* Codex load */
 $('#loadCodexBtn').onclick=()=>$('#codexFile').click();
@@ -1198,7 +1189,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* init */
-buildLocSelect(); syncControls(); applyGM(); detectCodex(); renderStash(); renderEmpty();
+buildLocSelect(); syncControls(); detectCodex(); renderStash(); renderEmpty();
 </script>
 <script src="arcanaforge-quicksearch.js"></script>
 <script src="arcanaforge-update-banner.js"></script>
