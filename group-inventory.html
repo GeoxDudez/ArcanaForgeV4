@@ -149,6 +149,9 @@ header.top{
 .coin-adj{display:flex;gap:4px}
 .coin-adj button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--txt-faint);font-size:14px;line-height:1;display:grid;place-items:center;transition:.14s}
 .coin-adj button:hover{border-color:var(--gold-dim);color:var(--gold)}
+.coin-amt{width:56px;height:26px;text-align:center;font-size:13px;border-radius:6px;border:1px solid var(--line);background:var(--bg-2);color:var(--txt);outline:none}
+.coin-amt:focus{border-color:var(--gold-dim)}
+.coin-amt::placeholder{color:var(--txt-faint)}
 
 /* ---- notes section ---- */
 .notes-panel{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
@@ -793,8 +796,9 @@ function renderCoinPanel(){
       <div class="coin-disc" style="background:${hex}22;border:1px solid ${hex}55;color:${hex}">${sym}</div>
       <div class="coin-name"><div class="cn" style="color:${hex}">${label}</div>${sub?`<div class="cs">${sub}</div>`:''}</div>
       <div class="coin-adj">
-        <button onclick="adjustCoin('${k}',-1)" title="Remove 1">−</button>
-        <button onclick="adjustCoin('${k}',1)" title="Add 1">+</button>
+        <button onclick="adjustCoinBy('${k}',-1)" title="Subtract amount (blank = 1)">−</button>
+        <input class="coin-amt" id="amt-${k}" type="number" min="0" placeholder="1" title="Amount to add or subtract">
+        <button onclick="adjustCoinBy('${k}',1)" title="Add amount (blank = 1)">+</button>
       </div>
       <input class="coin-inp" style="color:${hex}" type="number" min="0" value="${coin[k]||0}" oninput="setCoin('${k}',this.value)">
     </div>`).join('');
@@ -818,6 +822,15 @@ function adjustCoin(k,delta){
   data.coin[k]=Math.max(0,old+delta);
   queueCoinLog(k, data.coin[k]-old);
   save(); renderCoinPanel(); renderStats();
+}
+/* Reads the row's amount field (blank = 1) and applies it in one step,
+   so "type 25, press +" does the math for players and GMs. */
+function adjustCoinBy(k,sign){
+  const el=document.getElementById('amt-'+k);
+  const raw=el?String(el.value).trim():'';
+  const amt=raw===''?1:Math.max(0,parseFloat(raw)||0);
+  if(!amt) return;
+  adjustCoin(k, sign*amt);
 }
 function updateCoinTotal(){
   const el=document.getElementById('coin-total');
