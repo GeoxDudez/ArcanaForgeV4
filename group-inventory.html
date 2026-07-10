@@ -288,6 +288,10 @@ select.finp option{background:var(--bg-2)}
     <button class="active" data-tab="inventory" onclick="switchTab('inventory')">Inventory <span class="tab-count" id="cnt-items">0</span></button>
     <button data-tab="currency" onclick="switchTab('currency')">Party Coin</button>
     <button data-tab="notes" onclick="switchTab('notes')">Group Notes <span class="tab-count" id="cnt-notes">0</span></button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt-faint)" title="Item, coin, and note activity is logged under this name">
+      Acting as
+      <select id="actorSel" onchange="setActor(this.value)" style="background:var(--panel,#14161d);color:var(--txt,#e8e6e1);border:1px solid var(--line-soft,#2a2d38);border-radius:8px;padding:5px 8px;font-size:12px"></select>
+    </div>
   </div>
 
   <!-- ===================== INVENTORY TAB ===================== -->
@@ -319,11 +323,11 @@ select.finp option{background:var(--bg-2)}
         <!-- transaction log -->
         <div class="notes-panel">
           <div class="notes-header">
-            <h3>Transaction Log</h3>
+            <h3>Activity Log</h3>
             <button class="add-btn" onclick="openModal('transaction')">+ Log Entry</button>
           </div>
           <div id="txLog" style="max-height:400px;overflow-y:auto"></div>
-          <div id="txEmpty" style="padding:24px;text-align:center;color:var(--txt-faint);font-size:13px;font-style:italic">No transactions logged yet.</div>
+          <div id="txEmpty" style="padding:24px;text-align:center;color:var(--txt-faint);font-size:13px;font-style:italic">No activity yet &mdash; item, coin, and container changes are logged here automatically.</div>
         </div>
       </div>
     </div>
@@ -526,6 +530,60 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 function esc(s){ const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; }
 function fmtDate(ts){ try{ return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
 
+/* ====================================================================
+   IDENTITY — who is acting (drives the automatic activity log)
+   Linked to a campaign: defaults to your campaign display name.
+   Solo: pick from the players list (remembered per device).
+==================================================================== */
+const ACTOR_KEY = 'af-gi-actor::' + ACTIVE_KEY;
+function linkedName(){ try{ return (LINKED && AFSync.link().display_name) || ''; }catch(e){ return ''; } }
+function whoAmI(){
+  try{ const v = localStorage.getItem(ACTOR_KEY); if(v) return v; }catch(e){}
+  return linkedName();
+}
+function setActor(v){ try{ localStorage.setItem(ACTOR_KEY, v); }catch(e){} renderActorSelect(); }
+function renderActorSelect(){
+  const sel=document.getElementById('actorSel'); if(!sel) return;
+  const me=whoAmI();
+  const names=[];
+  const add=n=>{ if(n && !names.includes(n)) names.push(n); };
+  add(linkedName());
+  (data.players||[]).forEach(p=>add(p.name));
+  add('DM');
+  add(me);
+  sel.innerHTML = names.map(n=>`<option value="${esc(n)}" ${n===me?'selected':''}>${esc(n)}</option>`).join('')
+                + `<option value="" ${!me?'selected':''}>Someone</option>`;
+}
+
+/* ---- automatic activity log ----
+   Item, coin, and container changes are recorded in data.transactions
+   with who + timestamp; renders in the existing Activity Log panel. */
+function logAuto(desc, type){
+  data.transactions.push({ id:uid(), desc, type:type||'note', who: whoAmI()||'Someone', ts:Date.now(), auto:true });
+}
+
+/* Coin changes are debounced so typing "250" or clicking + five times
+   becomes ONE log line with the net change, not a line per keystroke. */
+let coinPending={}, coinLogT=null;
+function queueCoinLog(k, delta){
+  if(!delta) return;
+  coinPending[k]=(coinPending[k]||0)+delta;
+  clearTimeout(coinLogT);
+  coinLogT=setTimeout(flushCoinLog, 1600);
+}
+function flushCoinLog(){
+  clearTimeout(coinLogT); coinLogT=null;
+  const parts=COIN_DEF.filter(c=>coinPending[c.k]).map(c=>{
+    const d=coinPending[c.k]; return (d>0?'+':'\u2212')+Math.abs(d).toLocaleString()+' '+c.k;
+  });
+  if(!parts.length){ coinPending={}; return; }
+  const netGP=COIN_DEF.reduce((s,c)=>s+coinToGP({[c.k]:coinPending[c.k]||0}),0);
+  coinPending={};
+  logAuto('Party coin: '+parts.join(', '), netGP>=0?'gain':'spend');
+  save(); if(currentTab==='currency') renderTransactions();
+}
+window.addEventListener('beforeunload', flushCoinLog);
+
 /* ---- state ---- */
 let selectedContainer = null;
 let currentTab = 'inventory';
@@ -598,12 +656,16 @@ function renderCoinPanel(){
 }
 function setCoin(k,v){
   if(!data.coin) data.coin={pp:0,gp:0,ep:0,sp:0,cp:0};
+  const old=data.coin[k]||0;
   data.coin[k]=Math.max(0,parseFloat(v)||0);
+  queueCoinLog(k, data.coin[k]-old);
   save(); updateCoinTotal(); renderStats();
 }
 function adjustCoin(k,delta){
   if(!data.coin) data.coin={pp:0,gp:0,ep:0,sp:0,cp:0};
-  data.coin[k]=Math.max(0,(data.coin[k]||0)+delta);
+  const old=data.coin[k]||0;
+  data.coin[k]=Math.max(0,old+delta);
+  queueCoinLog(k, data.coin[k]-old);
   save(); renderCoinPanel(); renderStats();
 }
 function updateCoinTotal(){
@@ -627,7 +689,7 @@ function renderTransactions(){
       <span style="font-size:16px;flex:none;margin-top:1px;color:${typeColor[tx.type]||'var(--txt-faint)'}">${typeIcon[tx.type]||'📝'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;color:var(--txt)">${esc(tx.desc)}</div>
-        <div style="font-size:11px;color:var(--txt-faint);margin-top:2px">${tx.who?esc(tx.who)+' · ':''} ${fmtDate(tx.ts)}</div>
+        <div style="font-size:11px;color:var(--txt-faint);margin-top:2px">${tx.who?esc(tx.who)+' · ':''} ${fmtDate(tx.ts)}${tx.auto?' · <span style="opacity:.75;letter-spacing:.4px">auto</span>':''}</div>
       </div>
       <button class="itool del" onclick="deleteTx('${tx.id}')" title="Remove">✕</button>
     </div>`).join('');
@@ -788,8 +850,15 @@ function saveItem(){
   if(!con) return;
   if(!con.items) con.items=[];
   const obj={name,type,qty,weight,cost,rarity,notes};
-  if(editingItemIdx>=0) con.items[editingItemIdx]=obj;
-  else con.items.push(obj);
+  if(editingItemIdx>=0){
+    const prev=con.items[editingItemIdx]||{};
+    con.items[editingItemIdx]=obj;
+    const qtyBit = (parseInt(prev.qty)||1)!==qty ? ` (\u00d7${parseInt(prev.qty)||1} \u2192 \u00d7${qty})` : '';
+    logAuto(`Updated ${name}${qtyBit} in ${con.name}`, 'note');
+  } else {
+    con.items.push(obj);
+    logAuto(`Added ${name} \u00d7${qty} to ${con.name}`, 'gain');
+  }
   save(); closeModal('item'); renderContainers();
   if(selectedContainer===editingItemContainerId) selectContainer(editingItemContainerId);
   renderStats();
@@ -798,6 +867,8 @@ function saveItem(){
 function deleteItem(containerId,idx){
   const con=data.containers.find(x=>x.id===containerId);
   if(!con||!con.items) return;
+  const it=con.items[idx];
+  if(it) logAuto(`Removed ${it.name} \u00d7${parseInt(it.qty)||1} from ${con.name}`, 'spend');
   con.items.splice(idx,1);
   save(); renderContainers();
   if(selectedContainer===containerId) selectContainer(containerId);
@@ -819,8 +890,13 @@ function playerInitial(name){ return name?name.charAt(0).toUpperCase():'?'; }
 function renderPlayerSelect(){
   const sel=document.getElementById('composeWho');
   const cur=sel.value;
-  sel.innerHTML=`<option value="">Select player…</option>`+data.players.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
-  if(cur) sel.value=cur;
+  const names=[];
+  const add=n=>{ if(n && !names.includes(n)) names.push(n); };
+  add(linkedName());
+  (data.players||[]).forEach(p=>add(p.name));
+  add(whoAmI());
+  sel.innerHTML=`<option value="">Select player\u2026</option>`+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  sel.value = cur || whoAmI() || '';
 }
 
 function renderNotes(){
@@ -849,7 +925,7 @@ function postNote(){
   const author=document.getElementById('composeWho').value;
   const body=document.getElementById('composeText').value.trim();
   if(!body){ toast('Write something first.'); return; }
-  data.notes.push({id:uid(),author:author||'Anonymous',body,ts:Date.now()});
+  data.notes.push({id:uid(),author:author||whoAmI()||'Anonymous',body,ts:Date.now()});
   document.getElementById('composeText').value='';
   save(); renderNotes(); renderStats(); toast('Note posted.');
 }
@@ -877,7 +953,7 @@ function savePlayer(){
   if(!name){ toast('Enter a player name.'); return; }
   if(data.players.find(p=>p.name===name)){ toast('Player already added.'); return; }
   data.players.push({name,color:selectedColor});
-  save(); closeModal('player'); renderPlayerSelect(); renderStats(); toast(name+' added.');
+  save(); closeModal('player'); renderPlayerSelect(); renderActorSelect(); renderStats(); toast(name+' added.');
 }
 
 /* ====================================================================
@@ -908,6 +984,8 @@ function executeDelete(){
   if(!pendingDelete) return;
   const {type,id}=pendingDelete;
   if(type==='container'){
+    const con=data.containers.find(x=>x.id===id);
+    if(con) logAuto(`Deleted container ${con.name} (${(con.items||[]).length} items)`, 'spend');
     data.containers=data.containers.filter(x=>x.id!==id);
     if(selectedContainer===id){ selectedContainer=null; document.getElementById('container-detail').innerHTML=`<div class="detail-empty"><div class="ico">🎒</div><p>Container deleted.</p></div>`; }
   }
@@ -942,6 +1020,7 @@ document.getElementById('fileImport').onchange=e=>{
    RENDER ALL
 ==================================================================== */
 function renderAll(){
+  renderActorSelect();
   renderStats();
   renderContainers();
   if(currentTab==='currency') renderCoinPanel();
