@@ -1424,6 +1424,11 @@ function inventoryTab(c){
         <div style="font-size:13px;font-weight:600;color:var(--txt)">${label}</div>
         ${sub?`<div style="font-size:10px;color:var(--txt-faint)">${sub}</div>`:''}
       </div>
+      <div style="display:flex;gap:4px;align-items:center;flex:none">
+        <button class="icon-btn" data-coin-adj="${k}" data-sign="-1" title="Subtract amount (blank = 1)">−</button>
+        <input class="edit" type="number" min="0" placeholder="±" data-coin-amt="${k}" style="width:52px;text-align:center;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;background:var(--bg-1);color:var(--txt)">
+        <button class="icon-btn" data-coin-adj="${k}" data-sign="1" title="Add amount (blank = 1)">+</button>
+      </div>
       <input class="edit" type="number" data-coin="${k}" value="${coin[k]||0}" min="0" style="width:80px;text-align:right;font-size:15px;font-weight:600;color:${color};border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--bg-1)">
     </div>`).join('');
   const totalW = c.inventory.reduce((s,it)=>s + itemWeight(it)*(Number(it.qty)||1), 0);
@@ -1701,6 +1706,16 @@ function onSheetClick(e){
 
   // list edits
   let m;
+  if((m=t.closest('[data-coin-adj]'))){ const k=m.dataset.coinAdj, sign=+m.dataset.sign||1;
+    if(!c.coin) c.coin={pp:0,gp:0,ep:0,sp:0,cp:0};
+    const amtEl=document.querySelector(`[data-coin-amt="${k}"]`);
+    const raw=amtEl?String(amtEl.value).trim():'';
+    const amt=raw===''?1:Math.max(0,parseFloat(raw)||0);
+    if(!amt) return;
+    c.coin[k]=Math.max(0,(c.coin[k]||0)+sign*amt);
+    const dirEl=document.querySelector(`[data-coin="${k}"]`); if(dirEl) dirEl.value=c.coin[k];
+    if(amtEl) amtEl.value='';
+    save(); rerenderCoinTotal(); return; }
   if((m=t.closest('[data-equip-item]'))){ const it=c.inventory[+m.dataset.equipItem]; if(it){ it.equipped=!it.equipped; save(); rerenderTab(); toast(it.equipped?`Equipped ${it.name}`:`Unequipped ${it.name}`);} return; }
   if((m=t.closest('[data-equip-spell]'))){ const sp=c.spell.list[+m.dataset.equipSpell]; if(sp){ sp.equipped=!sp.equipped; save(); rerenderTab(); toast(sp.equipped?`Equipped ${sp.name}`:`Unequipped ${sp.name}`);} return; }
   if((m=t.closest('[data-unequip]'))){ const pp=m.dataset.unequip.split(':'); const arr=pp[0]==='spell'?c.spell.list:c.inventory; const o=arr[+pp[1]]; if(o){ o.equipped=false; save(); rerenderTab(); toast('Unequipped'); } return; }
