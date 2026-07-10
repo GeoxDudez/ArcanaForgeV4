@@ -1,3 +1,639 @@
-User-agent: *
-Allow: /
-Sitemap: https://arcanaforge.com/sitemap.xml
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://zquqrvbodscxjfhyivnd.supabase.co wss://zquqrvbodscxjfhyivnd.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcanaForge — NPC Generator</title>
+<meta name="theme-color" content="#0a0c11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Spline+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   THE TABLE — NPC GENERATOR  (rolls against the Codex)
+   Shared design system: slate-black + gold + blood, Cinzel / Spline Sans.
+   ===================================================================== */
+:root{
+  --bg-0:#0a0c11; --bg-1:#10131b; --bg-2:#181b24;
+  --panel:#161922; --panel-2:#1d212c; --line:#2a2f3d; --line-soft:#21252f;
+  --gold:#e3b352; --gold-dim:#9c7d3c; --gold-soft:#c9a24b;
+  --blood:#c62a30; --blood-dim:#7e2226;
+  --txt:#e7e3d8; --txt-soft:#b4b0a4; --txt-faint:#6f6c63;
+  --ok:#5fae6b;
+  --cp:#c08457; --sp:#b9c0c8; --ep:#9fb0a0; --gp:#e3b352; --pp:#cfe1ff;
+  --shadow:0 18px 48px rgba(0,0,0,.55); --radius:16px;
+  --display:'Cinzel',serif; --ui:'Spline Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--ui);color:var(--txt);
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(227,179,82,.10), transparent 60%),
+    radial-gradient(900px 600px at 108% 4%, rgba(198,42,48,.10), transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, rgba(227,179,82,.05), transparent 60%),
+    var(--bg-0);
+  min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:.2px}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+}
+::selection{background:rgba(227,179,82,.28)}
+button{font-family:inherit;cursor:pointer;color:inherit;border:none;background:none}
+select{font-family:inherit}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:22px 22px 80px}
+
+/* top bar — family style */
+header.top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 20px;margin-bottom:20px;
+  background:linear-gradient(180deg,rgba(31,35,47,.9),rgba(24,27,36,.9));border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03)}
+
+.brand .kicker{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-dim)}
+
+.brand h1{font-family:var(--display);font-weight:700;font-size:25px;letter-spacing:.02em;color:var(--gold);text-shadow:0 1px 0 #000;line-height:1.05}
+.brand h1 .sep{color:var(--txt-faint);font-weight:500;margin:0 8px}
+.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{font-family:var(--ui);font-size:13px;font-weight:500;color:var(--txt);background:var(--panel-2);border:1px solid var(--line);
+  padding:8px 13px;border-radius:9px;cursor:pointer;transition:.16s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{border-color:var(--gold-dim);color:var(--gold-soft);transform:translateY(-1px)}
+.btn.ghost{background:transparent}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7}
+.codex-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--line);color:var(--txt-faint)}
+.codex-chip.live{color:var(--ok);border-color:rgba(127,174,107,.4)}
+.codex-chip .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.gm{display:flex;align-items:center;gap:9px;padding-left:4px;cursor:pointer}
+.gm .lab{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-soft)}
+.switch{position:relative;width:44px;height:24px;border-radius:13px;background:var(--panel-2);border:1px solid var(--line);transition:.18s;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--txt-soft);transition:.18s}
+.switch.on{background:rgba(198,42,48,.25);border-color:var(--blood)}
+.switch.on::after{left:22px;background:var(--blood)}
+/* in-card mini buttons (kept for NPC card footers + prompts) */
+.tbtn{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt-soft);font-size:13px;font-weight:500;transition:.18s;white-space:nowrap}
+.tbtn:hover{border-color:var(--gold-dim);color:var(--txt);background:var(--panel-2)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:288px 1fr;gap:24px;margin-top:0;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.controls{position:sticky;top:18px;background:linear-gradient(160deg,var(--panel),var(--bg-1));border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.controls h3{font-family:var(--display);font-size:14px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-soft);padding:16px 18px 0}
+.ctl-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt-faint)}
+.field select{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-2);color:var(--txt);font-size:14px;outline:none;transition:.18s}
+.field select:focus{border-color:var(--gold-dim);box-shadow:0 0 0 3px rgba(227,179,82,.12)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.row .lbl{font-size:13px;color:var(--txt-soft)}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--txt-soft);font-size:16px;line-height:1;transition:.15s}
+.stepper button:hover{border-color:var(--gold-dim);color:var(--gold)}
+.stepper .val{min-width:22px;text-align:center;font-variant-numeric:tabular-nums;font-size:14px}
+.toggle{width:42px;height:23px;border-radius:99px;background:#272b36;border:1px solid var(--line);position:relative;transition:.2s;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:var(--txt-faint);transition:.2s}
+.toggle.on{background:rgba(227,179,82,.26);border-color:var(--gold-dim)}
+.toggle.on::after{left:21px;background:var(--gold);box-shadow:0 0 9px rgba(227,179,82,.6)}
+.bigbtn{margin-top:2px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:12px;
+  font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:1px;color:#1a140a;
+  background:linear-gradient(180deg,#efc568,#d39f3e);border:1px solid #f0d488;box-shadow:0 8px 22px rgba(227,179,82,.25);transition:.16s}
+.bigbtn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(227,179,82,.38)}
+.bigbtn:active{transform:translateY(0)}.bigbtn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.hintline{font-size:11.5px;color:var(--txt-faint);line-height:1.5;font-weight:300}
+/* family-style Generate button + hint */
+.gen{width:100%;margin-top:8px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.05em;color:#1a1206;cursor:pointer;padding:15px;border-radius:11px;border:none;
+  background:linear-gradient(180deg,#f0d59a,#e3b352 45%,#a9863c);
+  box-shadow:0 6px 18px rgba(227,179,82,.28),inset 0 1px 0 rgba(255,255,255,.4);transition:.16s;display:flex;align-items:center;justify-content:center;gap:9px}
+.gen:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(227,179,82,.4)}
+.gen:active{transform:translateY(0)}
+.gen:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.gen svg{width:18px;height:18px;stroke:#1a1206;fill:none;stroke-width:2}
+.hint{text-align:center;font-size:11px;color:var(--txt-faint);margin-top:9px;letter-spacing:.04em;line-height:1.6}
+.hint kbd{background:var(--bg-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:inherit;color:var(--txt-soft)}
+
+/* NPC card */
+.stage{min-height:400px}
+.npc{background:linear-gradient(165deg,var(--panel),var(--bg-1));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:rise .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.npc-head{display:flex;align-items:center;gap:18px;padding:24px 26px;border-bottom:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(227,179,82,.06),transparent)}
+.portrait{width:74px;height:74px;flex:none;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-size:27px;font-weight:700;color:var(--gold);
+  background:radial-gradient(circle at 32% 28%,#23262f,#0f0e0a);border:1px solid var(--gold-dim);box-shadow:inset 0 0 16px rgba(227,179,82,.18)}
+.npc-id{flex:1;min-width:0}
+.npc-name h2{font-family:var(--display);font-size:clamp(22px,3vw,31px);font-weight:700;letter-spacing:.5px;line-height:1.1}
+.npc-sub{font-size:13.5px;color:var(--gold-soft);margin-top:6px;letter-spacing:.4px}
+.npc-meta{font-size:12.5px;color:var(--txt-faint);margin-top:3px}
+.headtools{display:flex;gap:6px;align-self:flex-start}
+.minibtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--txt-faint);font-size:14px;display:grid;place-items:center;transition:.15s}
+.minibtn:hover{border-color:var(--gold-dim);color:var(--gold)}
+.minibtn.locked{color:var(--gold);border-color:var(--gold-dim);background:rgba(227,179,82,.1)}
+
+.npc-body{padding:6px 26px 22px}
+.sec{margin-top:20px}
+.sec-title{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--txt-faint);margin-bottom:8px}
+.sec-title::after{content:"";flex:1;height:1px;background:var(--line-soft);margin-left:4px}
+.sec-title.gm{color:var(--blood)}
+.sec-title .minibtn{width:24px;height:24px;font-size:11px}
+.fldgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px 22px}
+.fld{display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line-soft)}
+.fld .k{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-faint)}
+.fld .v{font-size:14.5px;color:var(--txt);line-height:1.4;margin-top:2px}
+.fld .v .desc{display:block;font-size:12px;color:var(--txt-soft);font-weight:300;margin-top:2px;line-height:1.45}
+.fld .v .two{display:block}
+.fld .tools{display:flex;gap:4px;opacity:0;transition:.15s;align-self:center}
+.fld:hover .tools{opacity:1}.fld.locked .tools{opacity:1}
+.fld .tools .minibtn{width:24px;height:24px;font-size:11px}
+.fld.full{grid-column:1/-1}
+
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+@media(max-width:560px){.stats{grid-template-columns:repeat(3,1fr)}}
+.stat{text-align:center;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:12px;padding:11px 6px}
+.stat .ab{font-size:10px;letter-spacing:1.6px;color:var(--txt-faint)}
+.stat .sc{font-family:var(--display);font-size:24px;font-weight:700;color:var(--txt);line-height:1.1;margin-top:3px}
+.stat .md{font-size:12px;color:var(--gold-soft);font-variant-numeric:tabular-nums}
+
+/* wealth */
+.coins{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.coin{display:flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--line-soft);border-radius:99px;padding:7px 13px;font-variant-numeric:tabular-nums}
+.coin .pip{width:13px;height:13px;border-radius:50%}
+.coin .amt{font-size:14px;font-weight:600}.coin .cur{font-size:11px;color:var(--txt-faint);letter-spacing:1px}
+.coin.zero{opacity:.4}
+.coin .pip.cp{background:var(--cp)}.coin .pip.sp{background:var(--sp)}.coin .pip.ep{background:var(--ep)}.coin .pip.gp{background:var(--gp)}.coin .pip.pp{background:var(--pp)}
+.wbasis{font-size:11px;color:var(--txt-faint);margin-top:8px;font-weight:300}
+
+/* inventory */
+.invgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.invcat .ct{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:7px}
+.bag{display:flex;flex-wrap:wrap;gap:7px}
+.bag .it{font-size:13px;color:var(--txt-soft);background:var(--bg-2);border:1px solid var(--line-soft);border-radius:8px;padding:6px 11px}
+.bag .it b{color:var(--txt);font-weight:500}
+.bag .none{font-size:12.5px;color:var(--txt-faint);font-style:italic;font-weight:300}
+
+.npc-foot{display:flex;gap:10px;padding:16px 26px;border-top:1px solid var(--line-soft);background:var(--bg-1)}
+.npc-foot .tbtn{flex:1;justify-content:center}
+.npc-foot .save{border-color:var(--gold-dim);color:var(--gold);background:rgba(227,179,82,.08)}
+.npc-foot .save:hover{background:rgba(227,179,82,.16);border-color:var(--gold)}
+
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 30px;color:var(--txt-faint)}
+.empty .big{font-size:54px;margin-bottom:18px;filter:grayscale(1) drop-shadow(0 4px 10px rgba(0,0,0,.5));opacity:.7}
+.empty h2{font-family:var(--display);font-size:20px;font-weight:600;color:var(--txt-soft);margin-bottom:8px}
+.empty p{max-width:440px;color:var(--txt-soft);font-size:14px;line-height:1.65;font-weight:300;margin-bottom:18px}
+.empty code{font-family:ui-monospace,monospace;color:var(--gold-soft);font-size:12px}
+
+.roster{margin-top:30px}
+.roster-head{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.roster-head h3{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:1px}
+.roster-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--gold-dim),transparent)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.rcard{background:linear-gradient(160deg,var(--panel),var(--bg-1));border:1px solid var(--line);border-radius:12px;padding:14px 16px;transition:.16s}
+.rcard:hover{border-color:var(--gold-dim);transform:translateY(-2px)}
+.rcard .rn{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.4px}
+.rcard .rm{font-size:12px;color:var(--txt-faint);margin-top:4px}
+.rcard .ra{display:flex;gap:6px;margin-top:11px}
+.rcard .ra button{flex:1;font-size:11px;letter-spacing:.6px;padding:7px;border-radius:8px;border:1px solid var(--line);color:var(--txt-soft);transition:.15s}
+.rcard .ra button:hover{border-color:var(--gold-dim);color:var(--gold)}
+.rcard .ra button.del:hover{border-color:var(--blood-dim);color:var(--blood)}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--txt);padding:12px 20px;border-radius:11px;font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+input[type=file]{display:none}
+
+@media(max-width:560px){}
+
+/* AF-BRAND-V2 unified header: emoji crest + wordmark image */
+.brand{display:flex;align-items:center;gap:13px;min-width:0}
+.brand .crest{width:42px;height:42px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:radial-gradient(circle at 30% 25%,#22262f,#101218);
+  border:1px solid var(--gold-dim);box-shadow:inset 0 0 14px rgba(227,179,82,.18);font-size:20px;line-height:1;overflow:hidden}
+.brand .crest img{width:100%;height:100%;object-fit:contain;padding:5px}
+.brand .bcol{display:flex;flex-direction:column;min-width:0;line-height:1}
+.brand .bcol .bmark{height:22px !important;width:auto !important;display:block;max-width:none;margin:0}
+.brand .bcol .bsub{font-size:11px;color:var(--txt-faint,#646b78);letter-spacing:2.2px;text-transform:uppercase;margin-top:5px}
+@media(max-width:560px){.brand .bcol .bsub{display:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+    <div class="crest">🎭</div>
+    <div class="bcol">
+      <img class="bmark" src="arcanaforge-wordmark.png" alt="ArcanaForge">
+      <div class="bsub">NPC Generator</div>
+    </div>
+  </div>
+  <div class="tools">
+      <span class="codex-chip" id="dataChip"><span class="d"></span><span id="dataLbl">No data</span></span>
+      <a class="btn ghost" href="dashboard.html" title="Back to the dashboard">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Dashboard</a>
+      <button class="btn ghost" id="loadCodexBtn" title="Load a Codex export (JSON)">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Load Codex</button>
+      <button class="btn ghost" id="exportRosterBtn" title="Export your saved NPCs">
+        <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>Export</button>
+      <button class="btn ghost" id="importRosterBtn" title="Import saved NPCs">
+        <svg viewBox="0 0 24 24"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 16V4m0 0l4 4m-4-4l-4 4"/></svg>Import</button>
+      <input type="file" id="codexImport" accept="application/json">
+      <input type="file" id="rosterImport" accept="application/json">
+    </div>
+  </header>
+
+  <div class="layout">
+  <aside class="controls">
+    <h3>Forge an NPC</h3>
+    <div class="ctl-body">
+      <div class="field"><label>Species</label><select id="fSpecies"><option value="">Any species</option></select></div>
+      <div class="field"><label>Gender</label><select id="fGender"><option value="">Any</option></select></div>
+      <div class="field"><label>Wealth · CR tier</label>
+        <select id="fCR">
+          <option value="0-4">CR 0–4</option>
+          <option value="5-10">CR 5–10</option>
+          <option value="11-16">CR 11–16</option>
+          <option value="17+">CR 17+</option>
+        </select></div>
+      <div class="row"><span class="lbl">Include inventory</span><div class="toggle on" id="invToggle"></div></div>
+      <div class="row" id="gearCountRow"><span class="lbl">General gear count</span>
+        <div class="stepper"><button id="gearMinus">−</button><span class="val" id="gearVal">5</span><button id="gearPlus">+</button></div></div>
+      <button class="gen" id="genBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 12.25a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M4.5 20.5v-.7a6 6 0 0 1 6-6h3a6 6 0 0 1 6 6v.7"/></svg>
+        Generate NPC
+      </button>
+      <p class="hint">Press <kbd>Space</kbd> or <kbd>G</kbd> to generate · lock a field to keep it on reroll</p>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div id="stageInner"></div>
+    <section class="roster" id="rosterWrap" style="display:none">
+      <div class="roster-head"><h3>The Roster — saved NPCs</h3><span class="rule"></span></div>
+      <div class="rgrid" id="rosterGrid"></div>
+    </section>
+  </main>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   THE TABLE — NPC GENERATOR LOGIC
+   ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const CFG_KEY='dnd-table-config-v1', CODEX_CACHE_KEY='dnd-table-codex-cache-v1';
+const NPC_CACHE_KEY='dnd-npcgen-codex-cache-v1', ROSTER_KEY='dnd-npcgen-roster-v2';
+
+/* domain hints (flexible — your domain rename is handled by name-based search) */
+const NAME_DOMS=['Names','Name'];
+const ITEM_DOMS=['Items & Gear','Items','Gear','Items&Gear','Equipment'];
+const MAGIC_DOMS=['Magic Items','Magic','Items & Gear','Items'];
+const LIB_DOMS=['Library','Books','Lore & World'];
+const NON_TRAIT=['Names','Name','Items & Gear','Items','Gear','Items&Gear','Equipment','Magic Items','Magic','Library','Books'];
+
+/* single-value text fields: key, label, section, list candidates */
+const SIMPLE=[
+  {key:'gender',     label:'Gender',       sec:'identity', lists:['Gender']},
+  {key:'preference', label:'Preference',   sec:'identity', lists:['Preference','Orientation','Preferences']},
+  {key:'profession', label:'Profession',   sec:'identity', lists:['Professions','Profession']},
+  {key:'age',        label:'Age',          sec:'identity', lists:['Age','Ages']},
+  {key:'hairStyle',  label:'Hair Style',   sec:'looks', lists:['Hair Style','Hairstyle','Hair Styles']},
+  {key:'hairColor',  label:'Hair Color',   sec:'looks', lists:['Hair Color','Hair Colour','Hair Colors']},
+  {key:'height',     label:'Height',       sec:'looks', lists:['Height','Heights']},
+  {key:'build',      label:'Build',        sec:'looks', lists:['Build','Builds']},
+  {key:'eyes',       label:'Eyes',         sec:'looks', lists:['Eyes','Eye Color','Eye Colour','Eye Colors']},
+  {key:'traits',     label:'Traits',       sec:'mind', lists:['Traits','Trait','Personality']},
+  {key:'talent',     label:'Talent',       sec:'mind', lists:['Talent','Talents']},
+  {key:'mannerism',  label:'Mannerism',    sec:'mind', lists:['Mannerism','Mannerisms']},
+  {key:'bond',       label:'Bond',         sec:'mind', lists:['Bond','Bonds']},
+  {key:'abHigh',     label:'Abilities High',sec:'mind', lists:['Abilities High','Ability High','High Abilities']},
+  {key:'abLow',      label:'Abilities Low', sec:'mind', lists:['Abilities Low','Ability Low','Low Abilities']},
+  {key:'secret',     label:'Flaw or Secret',sec:'gm',  lists:['Flaw or Secret','Flaws & Secrets','Flaws','Secrets','Secret'], gmOnly:true},
+];
+const SIMPLE_BY_KEY=Object.fromEntries(SIMPLE.map(f=>[f.key,f]));
+/* multi-draw fields */
+const MULTI=[
+  {key:'appearance', label:'Appearance', sec:'looks', lists:['Appearance','Appearances','Features'], count:2},
+  {key:'clothing',   label:'Clothing',   sec:'looks', lists:['Clothing','Clothes'], count:2},
+  {key:'colors',     label:'Colors',     sec:'looks', lists:['Colors','Color','Colours','Colour'], count:2},
+];
+const MULTI_BY_KEY=Object.fromEntries(MULTI.map(f=>[f.key,f]));
+const SECTIONS=[{id:'identity',title:'Identity'},{id:'looks',title:'Appearance'},{id:'mind',title:'Personality'},{id:'gm',title:'Flaw & Secret',gm:true}];
+const ABILITIES=['STR','DEX','CON','INT','WIS','CHA'];
+const INV_CATS=[
+  {key:'gear',      label:'Inventory',       doms:ITEM_DOMS,  lists:['Other Adventuring Gear','Adventuring Gear','Gear','Misc','Miscellaneous'], count:'var'},
+  {key:'weapons',   label:'Weapons & Armor', doms:ITEM_DOMS,  lists:['Simple Weapons','Martial Weapons','Martial Weapons Cont.','Weapons','Armor'], count:1},
+  {key:'tools',     label:'Tools',           doms:ITEM_DOMS,  lists:['Tools'], count:1},
+  {key:'containers',label:'Containers',      doms:ITEM_DOMS,  lists:['Container Capacity','Containers','Storage','Equipment Packs'], count:1},
+  {key:'food',      label:'Food',            doms:ITEM_DOMS,  lists:['Food'], count:1},
+  {key:'drink',     label:'Drink',           doms:ITEM_DOMS,  lists:['Drink','Drinks'], count:1},
+  {key:'potions',   label:'Potions',         doms:MAGIC_DOMS, lists:['Common Potions','Uncommon Potions','Rare Potions','Potions','Potion'], count:1},
+  {key:'books',     label:'Books',           doms:LIB_DOMS,   lists:['Library','Books','Book Titles'], count:1},
+];
+
+/* ---- state ---- */
+let library=null, npc={}, roster=loadRoster();
+let opts={includeInv:true, gearCount:5};
+
+/* =====================================================================
+   CODEX DATA
+   ===================================================================== */
+/* ===== SHARED CODEX ACCESS · identical across every Table tool =====
+   Single source of truth: reads the Codex's live save (codex_db_v1) when tools
+   share an origin; else the most complete snapshot any tool imported. One shared
+   snapshot key (codex-shared-cache-v1) means importing once serves every tool. */
+const CODEX_SHARED_CACHE='codex-shared-cache-v1';
+const CODEX_LEGACY_CACHES=['dnd-table-codex-cache-v1','dnd-npcgen-codex-cache-v1','ttrpg-char-codex-cache'];
+function codexLooks(o){return !!(o&&typeof o==='object'&&Array.isArray(o.collections)&&o.collections.some(c=>c&&Array.isArray(c.entries)));}
+function codexUnwrap(o){if(codexLooks(o))return o;if(o&&typeof o==='object'){if(o.data&&codexLooks(o.data))return o.data;for(const k of['library','codex','state'])if(codexLooks(o[k]))return o[k];}return null;}
+function codexCount(l){return l.collections.reduce((n,c)=>n+(Array.isArray(c.entries)?c.entries.length:0),0);}
+function codexStamp(o,l){if(o&&typeof o.at==='number')return o.at;const m=(l&&l.meta)||{};for(const f of['updated','exported','savedAt','modified','lastSaved','date']){if(m[f]){const t=Date.parse(m[f]);if(!isNaN(t))return t;}}return 0;}
+/* IDB bridge — reads Codex from IndexedDB (quota-based) before falling back to localStorage */
+const _IDB_DB='the-table-codex',_IDB_ST='data',_IDB_REC='codex_db_v1';
+function _idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(_IDB_DB,1);r.onupgradeneeded=e=>e.target.result.createObjectStore(_IDB_ST);r.onsuccess=e=>res(e.target.result);r.onerror=()=>rej();});}
+async function _idbGet(){try{const idb=await _idbOpen();return new Promise((res,rej)=>{const r=idb.transaction(_IDB_ST).objectStore(_IDB_ST).get(_IDB_REC);r.onsuccess=e=>res(e.target.result||null);r.onerror=()=>rej();});}catch(e){return null;}}
+async function _idbPut(val){try{const idb=await _idbOpen();return new Promise((res,rej)=>{const tx=idb.transaction(_IDB_ST,'readwrite');tx.objectStore(_IDB_ST).put(val,_IDB_REC);tx.oncomplete=()=>res();tx.onerror=()=>rej();});}catch(e){}}
+async function codexLoad(){const iv=await _idbGet();if(iv){const lib=codexUnwrap(iv);if(lib)return{data:lib,source:'codex (idb)',entries:codexCount(lib)};}let best=null;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k);if(!v||(v[0]!=='{'&&v[0]!=='['))continue;let o;try{o=JSON.parse(v);}catch(e){continue;}const lib=codexUnwrap(o);if(!lib)continue;const c={lib,entries:codexCount(lib),stamp:codexStamp(o,lib)};if(!best||c.entries>best.entries||(c.entries===best.entries&&c.stamp>best.stamp))best={...c,key:k};}return best?{data:best.lib,source:best.key,entries:best.entries}:null;}
+function codexSaveSnapshot(lib){_idbPut(lib);try{localStorage.setItem(CODEX_SHARED_CACHE,JSON.stringify({at:Date.now(),data:lib}));}catch(e){}CODEX_LEGACY_CACHES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});return true;}
+/* ===== end shared block ===== */
+const looksLikeCodex=codexLooks, countEntries=codexCount;
+async function detectCodex(){ const r=await codexLoad(); library=r?r.data:null; refreshChip(); populateFilters(); }
+function refreshChip(){const chip=$('#dataChip');if(library){chip.classList.add('live');$('#dataLbl').textContent=countEntries(library).toLocaleString()+' entries';$('#genBtn').disabled=false;}else{chip.classList.remove('live');$('#dataLbl').textContent='No Codex data';$('#genBtn').disabled=true;}}
+
+/* ---- list resolution (name-based, domain-flexible) ---- */
+function allCols(){return library?library.collections.filter(c=>c&&Array.isArray(c.entries)):[];}
+function findList(cands,{prefer=[],exclude=[]}={}){
+  const ex=exclude.map(d=>d.toLowerCase());
+  let cols=allCols().filter(c=>!ex.includes(String(c.domain||'').toLowerCase()));
+  const pref=prefer.map(d=>d.toLowerCase());
+  cols=cols.slice().sort((a,b)=>(pref.includes(String(a.domain||'').toLowerCase())?0:1)-(pref.includes(String(b.domain||'').toLowerCase())?0:1));
+  for(const cand of cands){const lc=cand.toLowerCase();const m=cols.find(c=>String(c.name||'').toLowerCase()===lc);if(m)return m;}
+  for(const cand of cands){const lc=cand.toLowerCase();const m=cols.find(c=>{const n=String(c.name||'').toLowerCase();return n.includes(lc)||lc.includes(n);});if(m)return m;}
+  return null;
+}
+function traitList(cands){return findList(cands,{exclude:NON_TRAIT});}
+function pickEntry(c){return c&&c.entries.length?c.entries[Math.floor(Math.random()*c.entries.length)]:null;}
+function entryVal(e){return e?{value:String(e.name??'').trim(),desc:(e.desc||e.description||'').trim()}:null;}
+
+/* species list + species-matched name list */
+function speciesList(){return findList(['Species','Heritages','Heritage','Races','Race','Ancestry'],{exclude:NON_TRAIT});}
+function subList(sp){
+  if(!sp)return null; const spl=sp.toLowerCase();
+  const cols=allCols().filter(c=>!NON_TRAIT.map(d=>d.toLowerCase()).includes(String(c.domain||'').toLowerCase()));
+  // must contain the species name AND a sub/lineage marker (so it won't match the bare "Species" list)
+  return cols.find(c=>{const n=String(c.name||'').toLowerCase();return n.includes(spl)&&(n.includes('sub')||n.includes('lineage'));})||null;
+}
+function nameListFor(sp,sub){
+  const cols=allCols().filter(c=>NAME_DOMS.map(d=>d.toLowerCase()).includes(String(c.domain||'').toLowerCase()));
+  const pool=cols.length?cols:allCols();
+  const ts=[sub,sp].filter(Boolean).map(s=>s.toLowerCase());
+  for(const t of ts){let m=pool.find(c=>String(c.name).toLowerCase()===t);if(m)return m;
+    m=pool.find(c=>{const n=String(c.name).toLowerCase();return n.includes(t)||t.includes(n);});if(m)return m;
+    const w=t.split(/[\s,/]+/)[0];if(w&&w.length>2){m=pool.find(c=>String(c.name).toLowerCase().includes(w));if(m)return m;}}
+  return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;
+}
+function nameSources(){
+  const sp=npc.species&&npc.species.value, sub=npc.sub&&npc.sub.value!=='N/A'?npc.sub.value:null;
+  const firstL=findList([sp+' First',sp+' First Names','First Names','First'],{prefer:NAME_DOMS});
+  const lastL =findList([sp+' Last',sp+' Last Names','Last Names','Surname','Surnames','Family Names'],{prefer:NAME_DOMS});
+  const single=nameListFor(sp,sub);
+  return {first:firstL||single, last:lastL||single, shared:!(firstL&&lastL)?single:null};
+}
+
+/* ---- dice ---- */
+function rollDice(n,s){let t=0;for(let i=0;i<n;i++)t+=1+Math.floor(Math.random()*s);return t;}
+function d100(){return 1+Math.floor(Math.random()*100);}
+function roll4d6(){const r=[1,2,3,4].map(()=>1+Math.floor(Math.random()*6)).sort((a,b)=>a-b);return r[1]+r[2]+r[3];}
+function rollStats(){const o={};ABILITIES.forEach(a=>o[a]=roll4d6());return o;}
+function abMod(s){const m=Math.floor((s-10)/2);return(m>=0?'+':'')+m;}
+/* DMG individual treasure by CR tier (RAW). */
+function rollWealth(tier){
+  const w={cp:0,sp:0,ep:0,gp:0,pp:0}; const r=d100();
+  if(tier==='0-4'){ if(r<=30)w.cp=rollDice(5,6); else if(r<=60)w.sp=rollDice(4,6); else if(r<=70)w.ep=rollDice(3,6); else if(r<=95)w.gp=rollDice(3,6); else w.pp=rollDice(1,6); }
+  else if(tier==='5-10'){ if(r<=30){w.cp=rollDice(4,6)*100;w.ep=rollDice(1,6)*10;} else if(r<=60){w.sp=rollDice(6,6)*10;w.gp=rollDice(2,6)*10;} else if(r<=70){w.ep=rollDice(3,6)*10;w.gp=rollDice(2,6)*10;} else if(r<=95){w.gp=rollDice(4,6)*10;} else {w.gp=rollDice(2,6)*10;w.pp=rollDice(3,6);} }
+  else if(tier==='11-16'){ if(r<=20){w.sp=rollDice(4,6)*100;w.gp=rollDice(1,6)*100;} else if(r<=35){w.ep=rollDice(1,6)*100;w.gp=rollDice(1,6)*100;} else if(r<=75){w.gp=rollDice(2,6)*100;w.pp=rollDice(1,6)*10;} else {w.gp=rollDice(2,6)*100;w.pp=rollDice(2,6)*10;} }
+  else { if(r<=15){w.ep=rollDice(2,6)*1000;w.gp=rollDice(8,6)*100;} else if(r<=55){w.gp=rollDice(1,6)*1000;w.pp=rollDice(1,6)*100;} else {w.gp=rollDice(1,6)*1000;w.pp=rollDice(2,6)*100;} }
+  return w;
+}
+
+/* ---- inventory pools ---- */
+function poolFrom(doms,cands){
+  const dl=doms.map(d=>d.toLowerCase());
+  const cols=allCols().filter(c=>dl.includes(String(c.domain||'').toLowerCase()));
+  const pool=[];
+  cols.forEach(c=>{const n=String(c.name||'').toLowerCase();if(cands.some(cd=>{const lc=cd.toLowerCase();return n===lc||n.includes(lc)||lc.includes(n);}))c.entries.forEach(e=>pool.push(e));});
+  if(!pool.length&&cols.length) cols.forEach(c=>c.entries.forEach(e=>pool.push(e)));
+  return pool;
+}
+function pickDistinct(pool,n){const out=[],used=new Set();let g=0;while(out.length<n&&used.size<pool.length&&g++<400){const e=pool[Math.floor(Math.random()*pool.length)];if(used.has(e))continue;used.add(e);out.push(entryVal(e));}return out;}
+function rollInventory(){const cats={};INV_CATS.forEach(c=>{const pool=poolFrom(c.doms,c.lists);const n=c.count==='var'?opts.gearCount:c.count;cats[c.key]=pool.length?pickDistinct(pool,n):[];});return cats;}
+
+/* =====================================================================
+   GENERATION
+   ===================================================================== */
+const lockedK=k=>npc[k]&&npc[k].locked;
+function mk(r){return r?{...r,locked:false}:null;}
+function rollSimple(k){const f=SIMPLE_BY_KEY[k];return entryVal(pickEntry(traitList(f.lists)));}
+function rollMulti(m){const c=traitList(m.lists);if(!c)return[];return pickDistinct(c.entries,m.count).filter(Boolean);}
+
+function generate(){
+  if(!library)return;
+  const fSp=$('#fSpecies').value, fGn=$('#fGender').value, tier=$('#fCR').value;
+  /* species */
+  if(fSp) npc.species={value:fSp,desc:'',locked:lockedK('species')};
+  else if(!lockedK('species')) npc.species=mk(entryVal(pickEntry(speciesList())))||{value:'—',desc:'',locked:false};
+  /* sub species (recompute unless locked) */
+  if(!lockedK('sub')){const c=subList(npc.species&&npc.species.value);const e=c?pickEntry(c):null;npc.sub={value:e?String(e.name):'N/A',desc:e?(e.desc||''):'',locked:false};}
+  /* names */
+  const src=nameSources();
+  if(!lockedK('first')){const e=pickEntry(src.first);npc.first={value:e?String(e.name):'—',locked:false};}
+  if(!lockedK('last')){const list=src.last; let e=pickEntry(list); if(src.shared){let g=0;while(e&&npc.first&&e.name===npc.first.value&&list.entries.length>1&&g++<10)e=pickEntry(list);} npc.last={value:e?String(e.name):'',locked:false};}
+  /* gender (filter aware) */
+  if(fGn) npc.gender={value:fGn,desc:'',locked:lockedK('gender')};
+  else if(!lockedK('gender')) npc.gender=mk(rollSimple('gender'));
+  /* other simple */
+  SIMPLE.forEach(f=>{if(f.key==='gender')return;if(!lockedK(f.key))npc[f.key]=mk(rollSimple(f.key));});
+  /* multi */
+  MULTI.forEach(m=>{if(!lockedK(m.key))npc[m.key]={values:rollMulti(m),locked:false};});
+  /* stats */
+  if(!lockedK('stats')) npc.stats={scores:rollStats(),locked:false};
+  /* wealth */
+  if(!lockedK('wealth')) npc.wealth={tier,coins:rollWealth(tier),locked:false};
+  /* inventory */
+  if(opts.includeInv){ if(!lockedK('inventory')) npc.inventory={cats:rollInventory(),locked:false}; }
+  else npc.inventory=null;
+  renderNPC();
+}
+function rerollKey(k){
+  if(!library)return;
+  if(k==='species'){
+    const f=$('#fSpecies').value;
+    npc.species=f?{value:f,desc:'',locked:lockedK('species')}:(mk(entryVal(pickEntry(speciesList())))||npc.species);
+    if(!lockedK('sub')){const c=subList(npc.species.value);const e=c?pickEntry(c):null;npc.sub={value:e?String(e.name):'N/A',desc:e?(e.desc||''):'',locked:false};}
+    if(!lockedK('first')||!lockedK('last')){const src=nameSources();if(!lockedK('first')){const e=pickEntry(src.first);npc.first={value:e?String(e.name):'—',locked:false};}if(!lockedK('last')){const e=pickEntry(src.last);npc.last={value:e?String(e.name):'',locked:false};}}
+  } else if(k==='sub'){const c=subList(npc.species&&npc.species.value);const e=c?pickEntry(c):null;npc.sub={value:e?String(e.name):'N/A',desc:e?(e.desc||''):'',locked:lockedK('sub')};}
+  else if(k==='first'||k==='last'){const src=nameSources();const e=pickEntry(src[k]);npc[k]={value:e?String(e.name):(k==='last'?'':'—'),locked:lockedK(k)};}
+  else if(k==='stats'){npc.stats={scores:rollStats(),locked:lockedK('stats')};}
+  else if(k==='wealth'){npc.wealth={tier:$('#fCR').value,coins:rollWealth($('#fCR').value),locked:lockedK('wealth')};}
+  else if(k==='inventory'){npc.inventory={cats:rollInventory(),locked:lockedK('inventory')};}
+  else if(MULTI_BY_KEY[k]){npc[k]={values:rollMulti(MULTI_BY_KEY[k]),locked:lockedK(k)};}
+  else {const r=rollSimple(k);npc[k]=r?{...r,locked:lockedK(k)}:npc[k];}
+  renderNPC();
+}
+function toggleLock(k){if(npc[k]){npc[k].locked=!npc[k].locked;renderNPC();}}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function initials(){const f=(npc.first&&npc.first.value||'').trim(), l=(npc.last&&npc.last.value||'').trim();return((f[0]||'')+(l[0]||f[1]||'')).toUpperCase()||'?';}
+function lockBtn(k){return `<button class="minibtn ${lockedK(k)?'locked':''}" title="${lockedK(k)?'Unlock':'Lock'}" data-lock="${k}">${lockedK(k)?'🔒':'🔓'}</button>`;}
+function rerollBtn(k){return `<button class="minibtn" title="Reroll" data-reroll="${k}">↻</button>`;}
+function tools(k){return `<span class="tools">${rerollBtn(k)}${lockBtn(k)}</span>`;}
+
+function simpleRow(k){
+  const f=SIMPLE_BY_KEY[k], d=npc[k];
+  if(!d||!d.value||d.value==='—')return '';
+  const desc=d.desc?`<span class="desc">${esc(d.desc)}</span>`:'';
+  const tag='';
+  const full=f.gmOnly?'full':'';
+  return `<div class="fld ${lockedK(k)?'locked':''} ${full}">
+    <div><span class="k">${esc(f.label)}${tag}</span><div class="v">${esc(d.value)}${desc}</div></div>${tools(k)}</div>`;
+}
+function multiRow(k){
+  const f=MULTI_BY_KEY[k], d=npc[k];
+  if(!d||!d.values||!d.values.length)return '';
+  const vals=d.values.map(v=>`<span class="two">${esc(v.value)}${v.desc?`<span class="desc">${esc(v.desc)}</span>`:''}</span>`).join('');
+  return `<div class="fld ${lockedK(k)?'locked':''}"><div><span class="k">${esc(f.label)}</span><div class="v">${vals}</div></div>${tools(k)}</div>`;
+}
+function renderNPC(){
+  const stage=$('#stageInner');
+  if(!npc.species&&!npc.first){renderEmptyOrPrompt();return;}
+  const first=npc.first?esc(npc.first.value):'', last=npc.last&&npc.last.value?esc(npc.last.value):'';
+  const sp=npc.species&&npc.species.value?esc(npc.species.value):'';
+  const sub=npc.sub&&npc.sub.value&&npc.sub.value!=='N/A'?` · ${esc(npc.sub.value)}`:'';
+  const prof=npc.profession&&npc.profession.value?` · ${esc(npc.profession.value)}`:'';
+  /* attribute sections */
+  let body='';
+  SECTIONS.forEach(s=>{
+    const keys=[...SIMPLE.filter(f=>f.sec===s.id).map(f=>f.key), ...MULTI.filter(f=>f.sec===s.id).map(f=>f.key)];
+    const rows=keys.map(k=>SIMPLE_BY_KEY[k]?simpleRow(k):multiRow(k)).join('');
+    if(!rows.trim())return;
+    body+=`<div class="sec"><div class="sec-title ${s.gm?'gm':''}">${esc(s.title)}</div><div class="fldgrid">${rows}</div></div>`;
+  });
+  /* stats */
+  if(npc.stats){
+    const cells=ABILITIES.map(a=>`<div class="stat"><div class="ab">${a}</div><div class="sc">${npc.stats.scores[a]}</div><div class="md">${abMod(npc.stats.scores[a])}</div></div>`).join('');
+    body+=`<div class="sec"><div class="sec-title">Ability Scores ${rerollBtn('stats')}${lockBtn('stats')}</div><div class="stats">${cells}</div></div>`;
+  }
+  /* wealth */
+  if(npc.wealth){
+    const c=npc.wealth.coins;
+    const pill=(cur)=>`<div class="coin ${c[cur]?'':'zero'}"><span class="pip ${cur}"></span><span class="amt">${c[cur].toLocaleString()}</span><span class="cur">${cur.toUpperCase()}</span></div>`;
+    body+=`<div class="sec"><div class="sec-title">Purse · ${tierLabel(npc.wealth.tier)} ${rerollBtn('wealth')}${lockBtn('wealth')}</div>
+      <div class="coins">${['pp','gp','ep','sp','cp'].map(pill).join('')}</div>
+      <div class="wbasis">Based on the D&amp;D individual-treasure tables for this CR tier.</div></div>`;
+  }
+  /* inventory */
+  if(npc.inventory){
+    const cats=INV_CATS.map(cat=>{const items=npc.inventory.cats[cat.key]||[];if(!items.length)return '';
+      return `<div class="invcat"><div class="ct">${esc(cat.label)}</div><div class="bag">${items.map(i=>`<span class="it"><b>${esc(i.value)}</b>${i.desc?' — '+esc(truncate(i.desc,48)):''}</span>`).join('')}</div></div>`;}).join('');
+    if(cats.trim()) body+=`<div class="sec"><div class="sec-title">Belongings ${rerollBtn('inventory')}${lockBtn('inventory')}</div><div class="invgrid">${cats}</div></div>`;
+  }
+  stage.innerHTML=`<article class="npc">
+    <div class="npc-head">
+      <div class="portrait">${esc(initials())}</div>
+      <div class="npc-id">
+        <div class="npc-name"><h2>${first}${last?' '+last:''}</h2></div>
+        <div class="npc-sub">${sp}${sub}${prof}</div>
+        <div class="npc-meta">${[npc.gender&&npc.gender.value,npc.age&&npc.age.value,npc.preference&&npc.preference.value].filter(Boolean).map(esc).join(' · ')}</div>
+      </div>
+      <div class="headtools">${rerollBtn('first')}${lockBtn('first')}</div>
+    </div>
+    <div class="npc-body">${body}</div>
+    <div class="npc-foot"><button class="tbtn save" id="saveBtn">✦ Save to roster</button><button class="tbtn" id="copyBtn">⧉ Copy text</button></div>
+  </article>`;
+  bindNPC();
+}
+function bindNPC(){
+  $$('[data-reroll]').forEach(b=>b.onclick=()=>rerollKey(b.dataset.reroll));
+  $$('[data-lock]').forEach(b=>b.onclick=()=>toggleLock(b.dataset.lock));
+  const sb=$('#saveBtn');if(sb)sb.onclick=saveCurrent;
+  const cb=$('#copyBtn');if(cb)cb.onclick=copyCurrent;
+}
+function tierLabel(t){return{'0-4':'CR 0–4','5-10':'CR 5–10','11-16':'CR 11–16','17+':'CR 17+'}[t]||t;}
+function renderEmptyOrPrompt(){
+  const stage=$('#stageInner');
+  if(!library){
+    stage.innerHTML=`<div class="empty"><div class="big">📖</div><h2>Connect the Codex first</h2>
+      <p>This generator rolls against your Codex library. Served alongside the Codex it loads automatically; as a loose <code>file://</code> page, hit <strong>Load Codex</strong> above and choose the file from the Codex's <strong>Export</strong>.</p>
+      <button class="btn ghost" onclick="document.getElementById('codexImport').click()">Load Codex JSON</button></div>`;
+  } else {
+    stage.innerHTML=`<div class="empty"><div class="big">🎭</div><h2>The cast awaits</h2>
+      <p>Pick any constraints on the left, then <strong>Generate</strong> to roll a full NPC from your ${countEntries(library).toLocaleString()} Codex entries. Lock anything you like, reroll the rest, and save favourites to your roster.</p></div>`;
+  }
+}
+
+/* =====================================================================
+   ROSTER
+   ===================================================================== */
+function loadRoster(){try{const r=JSON.parse(localStorage.getItem(ROSTER_KEY));return Array.isArray(r)?r:[];}catch(e){return[];}}
+function saveRoster(){localStorage.setItem(ROSTER_KEY,JSON.stringify(roster));}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function saveCurrent(){if(!npc.species&&!npc.first)return;const snap=clone(npc);Object.values(snap).forEach(v=>{if(v&&typeof v==='object')v.locked=false;});roster.unshift({id:'npc_'+Date.now().toString(36),created:Date.now(),npc:snap});saveRoster();renderRoster();toast('Saved “'+fullName(snap)+'” to the roster.');}
+function fullName(n){return[n.first&&n.first.value,n.last&&n.last.value].filter(Boolean).join(' ')||'Unnamed';}
+function renderRoster(){
+  const wrap=$('#rosterWrap');if(!roster.length){wrap.style.display='none';return;}wrap.style.display='block';
+  $('#rosterGrid').innerHTML=roster.map(r=>{const n=r.npc||{};const sub=[n.species&&n.species.value,(n.sub&&n.sub.value&&n.sub.value!=='N/A')?n.sub.value:''].filter(Boolean).join(' · ');const meta=[n.profession&&n.profession.value,n.gender&&n.gender.value].filter(Boolean).join(' · ');
+    return `<div class="rcard"><div class="rn">${esc(fullName(n))}</div><div class="rm">${esc(sub||'—')}${meta?'<br>'+esc(meta):''}</div>
+      <div class="ra"><button data-load="${r.id}">Load</button><button class="del" data-del="${r.id}">Delete</button></div></div>`;}).join('');
+  $$('[data-load]').forEach(b=>b.onclick=()=>loadFromRoster(b.dataset.load));
+  $$('[data-del]').forEach(b=>b.onclick=()=>{roster=roster.filter(x=>x.id!==b.dataset.del);saveRoster();renderRoster();toast('Removed.');});
+}
+function loadFromRoster(id){const r=roster.find(x=>x.id===id);if(!r)return;npc=clone(r.npc);renderNPC();window.scrollTo({top:0,behavior:'smooth'});toast('Loaded “'+fullName(npc)+'”.');}
+function copyCurrent(){
+  if(!npc.species&&!npc.first)return;
+  const L=[fullName(npc)];
+  const sp=[npc.species&&npc.species.value,(npc.sub&&npc.sub.value&&npc.sub.value!=='N/A')?npc.sub.value:''].filter(Boolean).join(' · ');if(sp)L.push(sp);
+  SIMPLE.forEach(f=>{const d=npc[f.key];if(d&&d.value&&d.value!=='—')L.push(`${f.label}: ${d.value}`);});
+  MULTI.forEach(f=>{const d=npc[f.key];if(d&&d.values&&d.values.length)L.push(`${f.label}: ${d.values.map(v=>v.value).join(', ')}`);});
+  if(npc.stats)L.push('Stats: '+ABILITIES.map(a=>`${a} ${npc.stats.scores[a]}`).join(', '));
+  if(npc.wealth){const c=npc.wealth.coins;L.push('Purse ('+tierLabel(npc.wealth.tier)+'): '+['pp','gp','ep','sp','cp'].filter(k=>c[k]).map(k=>c[k]+k).join(', '));}
+  if(npc.inventory)INV_CATS.forEach(cat=>{const it=npc.inventory.cats[cat.key]||[];if(it.length)L.push(`${cat.label}: ${it.map(i=>i.value).join(', ')}`);});
+  navigator.clipboard?.writeText(L.join('\n')).then(()=>toast('Copied to clipboard.'),()=>toast('Copy failed.'));
+}
+
+/* =====================================================================
+   FILTERS / OPTIONS / GM / IMPORT
+   ===================================================================== */
+function populateFilters(){
+  const h=$('#fSpecies'),g=$('#fGender');const hc=h.value,gc=g.value;
+  h.innerHTML='<option value="">Any species</option>';const sl=speciesList();if(sl)sl.entries.forEach(e=>{const o=document.createElement('option');o.value=o.textContent=e.name;h.appendChild(o);});h.value=hc;
+  g.innerHTML='<option value="">Any</option>';const gl=traitList(['Gender']);if(gl)gl.entries.forEach(e=>{const o=document.createElement('option');o.value=o.textContent=e.name;g.appendChild(o);});g.value=gc;
+}
+$('#genBtn').onclick=generate;
+$('#invToggle').onclick=()=>{opts.includeInv=!opts.includeInv;$('#invToggle').classList.toggle('on',opts.includeInv);$('#gearCountRow').style.opacity=opts.includeInv?'1':'.4';};
+$('#gearMinus').onclick=()=>{opts.gearCount=Math.max(0,opts.gearCount-1);$('#gearVal').textContent=opts.gearCount;};
+$('#gearPlus').onclick=()=>{opts.gearCount=Math.min(12,opts.gearCount+1);$('#gearVal').textContent=opts.gearCount;};
+$('#loadCodexBtn').onclick=()=>$('#codexImport').click();
+$('#codexImport').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const lib=codexUnwrap(d);if(!lib){toast('That isn’t a Codex export.');return;}codexSaveSnapshot(lib);detectCodex();toast('Codex loaded · '+countEntries(lib).toLocaleString()+' entries.');if(!npc.species&&!npc.first)renderEmptyOrPrompt();}catch(err){toast('Could not read that file.');}};r.readAsText(f);e.target.value='';});
+$('#exportRosterBtn').onclick=()=>{if(!roster.length){toast('Roster is empty.');return;}download(JSON.stringify({app:'npc-generator',version:2,exported:new Date().toISOString(),npcs:roster},null,2),'npc-roster.json');toast('Roster exported.');};
+$('#importRosterBtn').onclick=()=>$('#rosterImport').click();
+$('#rosterImport').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);const arr=d.npcs||(Array.isArray(d)?d:[]);let n=0;arr.forEach(x=>{if(x&&x.npc){x.id=x.id||'npc_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);roster.push(x);n++;}});saveRoster();renderRoster();toast('Imported '+n+' NPC'+(n===1?'':'s')+'.');}catch(err){toast('Could not read that file.');}};r.readAsText(f);e.target.value='';});
+
+/* helpers */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function truncate(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s;}
+function download(t,name){const b=new Blob([t],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200);}
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;if(e.code==='Space'||e.key.toLowerCase()==='g'){e.preventDefault();if(library)generate();}});
+
+/* init */
+detectCodex();renderRoster();renderEmptyOrPrompt();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!library)detectCodex();});
+</script>
+<script src="arcanaforge-quicksearch.js"></script>
+<script src="arcanaforge-update-banner.js"></script>
+</body>
+</html>

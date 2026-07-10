@@ -4,1432 +4,204 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://zquqrvbodscxjfhyivnd.supabase.co wss://zquqrvbodscxjfhyivnd.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ArcanaForge — Campaign Notes</title>
+<title>Campaign Link — ArcanaForge</title>
 <meta name="theme-color" content="#0a0c11">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.png">
-<link rel="apple-touch-icon" href="icon-180.png">
-<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Spline+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-/* =====================================================================
-   THE TABLE — Campaign Notes & Story Tracker
-   Shared design system: slate-black + gold + blood, Cinzel / Spline Sans.
-   ===================================================================== */
-:root{
-  --bg-0:#0a0c11; --bg-1:#10131b; --bg-2:#181b24;
-  --panel:#161922; --panel-2:#1d212c; --line:#2a2f3d; --line-soft:#21252f;
-  --gold:#e3b352; --gold-dim:#9c7d3c; --gold-soft:#c9a24b;
-  --blood:#c62a30; --blood-dim:#7e2226;
-  --txt:#e7e3d8; --txt-soft:#b4b0a4; --txt-faint:#6f6c63;
-  --ok:#5fae6b; --plan:#6f7686; --arc:#9b8cff; --thread:#62b6c9;
-  --shadow:0 18px 48px rgba(0,0,0,.55); --radius:14px;
-  --display:'Cinzel',serif; --ui:'Spline Sans',system-ui,sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:var(--ui);color:var(--txt);
-  background:
-    radial-gradient(1100px 700px at 18% -8%, rgba(155,140,255,.09), transparent 58%),
-    radial-gradient(900px 600px at 108% 4%, rgba(198,42,48,.08), transparent 55%),
-    radial-gradient(700px 700px at 50% 120%, rgba(227,179,82,.05), transparent 60%),
-    var(--bg-0);
-  min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:.2px;
-}
-body::before{
-  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
-}
-::selection{background:rgba(155,140,255,.28)}
-button{font-family:inherit;cursor:pointer;color:inherit;border:none;background:none}
-textarea,input,select{font-family:inherit}
-.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:22px 22px 80px}
-
-/* ---- top bar ---- */
-header.top{
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 20px;margin-bottom:24px;
-  background:linear-gradient(180deg,rgba(31,35,47,.9),rgba(24,27,36,.9));
-  border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03);
-}
-
-.brand .kicker{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-dim)}
-
-.brand h1{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.02em;color:var(--gold);line-height:1.05}
-.brand h1 .sep{color:var(--txt-faint);font-weight:500;margin:0 8px}
-.htools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.btn{
-  font-size:13px;font-weight:500;color:var(--txt);background:var(--panel-2);
-  border:1px solid var(--line);padding:8px 13px;border-radius:9px;
-  transition:.16s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
-}
-.btn:hover{border-color:var(--gold-dim);color:var(--gold-soft);transform:translateY(-1px)}
-.btn.ghost{background:transparent}
-.btn.danger:hover{border-color:var(--blood);color:var(--blood)}
-.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7}
-
-/* ---- tab nav ---- */
-.tabnav{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line-soft);padding-bottom:0}
-.tabnav button{
-  font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.6px;
-  padding:10px 18px;border-radius:10px 10px 0 0;border:1px solid transparent;
-  border-bottom:none;color:var(--txt-faint);transition:.16s;position:relative;bottom:-1px;
-}
-.tabnav button:hover{color:var(--txt-soft)}
-.tabnav button.active{color:var(--gold);border-color:var(--line-soft);background:var(--panel);border-bottom-color:var(--panel)}
-.tab-count{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:18px;height:18px;padding:0 5px;border-radius:99px;
-  font-family:var(--ui);font-size:10px;font-weight:600;letter-spacing:0;
-  background:var(--bg-2);color:var(--txt-faint);margin-left:6px;
-}
-.tabnav button.active .tab-count{background:rgba(227,179,82,.18);color:var(--gold-soft)}
-
-/* ---- two-column layout ---- */
-.layout{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
-@media(max-width:860px){.layout{grid-template-columns:1fr}}
-
-/* ---- list panel ---- */
-.list-panel{
-  background:linear-gradient(160deg,var(--panel),var(--bg-1));
-  border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:var(--shadow);overflow:hidden;
-}
-.list-header{
-  padding:14px 16px 12px;border-bottom:1px solid var(--line-soft);
-  display:flex;align-items:center;gap:10px;
-  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
-}
-.list-header h3{font-family:var(--display);font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold-soft);flex:1}
-.add-btn{
-  display:inline-flex;align-items:center;gap:6px;padding:7px 12px;
-  border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.4px;
-  border:1px solid var(--gold-dim);
-  background:linear-gradient(180deg,rgba(227,179,82,.14),rgba(227,179,82,.04));
-  color:var(--gold);transition:.16s;
-}
-.add-btn:hover{border-color:var(--gold);background:linear-gradient(180deg,rgba(227,179,82,.24),rgba(227,179,82,.10))}
-.list-body{max-height:calc(100vh - 230px);overflow-y:auto;padding:8px}
-.list-body::-webkit-scrollbar{width:6px}
-.list-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
-
-.list-item{
-  padding:12px 12px 10px;border-radius:10px;cursor:pointer;
-  border:1px solid transparent;transition:.15s;margin-bottom:4px;
-}
-.list-item:hover{background:var(--panel-2);border-color:var(--line-soft)}
-.list-item.active{background:var(--panel-2);border-color:var(--gold-dim)}
-.li-top{display:flex;align-items:flex-start;gap:8px}
-.li-icon{font-size:16px;flex:none;margin-top:1px}
-.li-name{font-size:14px;font-weight:500;line-height:1.3;flex:1}
-.li-meta{font-size:11px;color:var(--txt-faint);margin-top:3px;letter-spacing:.3px}
-.li-badge{
-  display:inline-flex;align-items:center;gap:4px;
-  font-size:9px;letter-spacing:1.3px;text-transform:uppercase;
-  padding:2px 7px;border-radius:99px;font-weight:600;flex:none;margin-top:2px;
-}
-
-/* status badges */
-.s-active{color:#bfe6c5;background:rgba(95,174,107,.13);border:1px solid rgba(95,174,107,.35)}
-.s-active .dot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
-.s-planned{color:#c2c7d2;background:rgba(111,118,134,.12);border:1px solid rgba(111,118,134,.32)}
-.s-planned .dot{background:var(--plan)}
-.s-completed{color:#b4afc8;background:rgba(100,90,160,.14);border:1px solid rgba(100,90,160,.35)}
-.s-completed .dot{background:#8b7fcf}
-.s-open{color:#a5d8e6;background:rgba(98,182,201,.12);border:1px solid rgba(98,182,201,.32)}
-.s-open .dot{background:var(--thread)}
-.s-resolved{color:var(--txt-faint);background:rgba(111,108,99,.10);border:1px solid rgba(111,108,99,.25)}
-.s-resolved .dot{background:var(--txt-faint)}
-.dot{width:5px;height:5px;border-radius:50%;display:inline-block}
-
-.list-empty{padding:30px 16px;text-align:center;color:var(--txt-faint)}
-.list-empty .ico{font-size:28px;margin-bottom:10px;opacity:.5}
-.list-empty p{font-size:13px;line-height:1.6;font-weight:300}
-
-/* ---- detail panel ---- */
-.detail-panel{
-  background:linear-gradient(160deg,var(--panel),var(--bg-1));
-  border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:var(--shadow);min-height:420px;
-}
-.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;color:var(--txt-faint);text-align:center;padding:32px}
-.detail-empty .ico{font-size:40px;margin-bottom:14px;opacity:.4}
-.detail-empty p{font-size:14px;line-height:1.6;max-width:340px;font-weight:300}
-
-/* detail header */
-.dh{
-  padding:18px 22px 14px;border-bottom:1px solid var(--line-soft);
-  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
-  display:flex;align-items:flex-start;gap:14px;
-}
-.dh-icon{font-size:24px;flex:none;margin-top:2px}
-.dh-body{flex:1;min-width:0}
-.dh-title{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:.3px;line-height:1.2;word-break:break-word}
-.dh-meta{font-size:12px;color:var(--txt-faint);margin-top:4px;letter-spacing:.3px}
-.dh-actions{display:flex;gap:8px;flex:none}
-.icon-btn{
-  width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
-  background:var(--panel-2);color:var(--txt-faint);font-size:14px;
-  display:grid;place-items:center;transition:.15s;
-}
-.icon-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
-.icon-btn.danger:hover{border-color:var(--blood);color:var(--blood)}
-
-/* detail body */
-.db{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-.field-group{display:flex;flex-direction:column;gap:6px}
-.field-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt-faint)}
-.field-value{font-size:14px;color:var(--txt-soft);line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.field-value.empty-val{color:var(--txt-faint);font-style:italic}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:640px){.two-col{grid-template-columns:1fr}}
-
-/* moments list */
-.moments-list{display:flex;flex-direction:column;gap:6px}
-.moment-item{
-  display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
-  border-radius:9px;background:var(--bg-2);border:1px solid var(--line-soft);
-}
-.moment-bullet{color:var(--gold-dim);font-size:13px;flex:none;margin-top:1px}
-.moment-text{font-size:13px;color:var(--txt-soft);line-height:1.5;flex:1;word-break:break-word}
-.moment-del{color:var(--txt-faint);font-size:12px;flex:none;opacity:0;transition:.15s;padding:2px 4px}
-.moment-item:hover .moment-del{opacity:1}
-.moment-del:hover{color:var(--blood)}
-.moment-add-row{display:flex;gap:8px;margin-top:4px}
-.moment-inp{
-  flex:1;padding:9px 12px;border-radius:9px;border:1px solid var(--line);
-  background:var(--bg-2);color:var(--txt);font-size:13px;outline:none;transition:.18s;
-}
-.moment-inp:focus{border-color:var(--gold-dim);box-shadow:0 0 0 3px rgba(227,179,82,.10)}
-.moment-inp::placeholder{color:var(--txt-faint)}
-.moment-add-btn{
-  padding:9px 13px;border-radius:9px;font-size:13px;font-weight:600;
-  border:1px solid var(--gold-dim);
-  background:linear-gradient(180deg,rgba(227,179,82,.14),rgba(227,179,82,.04));
-  color:var(--gold);transition:.16s;
-}
-.moment-add-btn:hover{border-color:var(--gold)}
-
-/* tags */
-.tags-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tag{
-  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
-  border-radius:99px;font-size:11px;font-weight:500;letter-spacing:.3px;
-  background:rgba(155,140,255,.13);border:1px solid rgba(155,140,255,.28);color:#c9c2ff;
-}
-.tag-del{cursor:pointer;opacity:.7;transition:.12s}
-.tag-del:hover{opacity:1;color:var(--blood)}
-.tag-inp{
-  padding:4px 10px;border-radius:99px;border:1px solid var(--line);
-  background:var(--bg-2);color:var(--txt);font-size:11px;outline:none;
-  transition:.18s;width:110px;
-}
-.tag-inp:focus{border-color:var(--arc);box-shadow:0 0 0 3px rgba(155,140,255,.10)}
-.tag-inp::placeholder{color:var(--txt-faint)}
-
-/* ---- modal / editor ---- */
-.scrim{position:fixed;inset:0;z-index:60;background:rgba(6,7,11,.78);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:22px}
-.scrim.on{display:flex}
-.modal{width:100%;max-width:560px;background:linear-gradient(160deg,var(--panel-2),var(--bg-1));border:1px solid var(--gold-dim);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;max-height:90vh;display:flex;flex-direction:column}
-.mh{padding:18px 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:12px;flex:none}
-.mh h3{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.6px;flex:1}
-.mh .close{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--txt-faint);display:grid;place-items:center;font-size:16px;transition:.14s}
-.mh .close:hover{border-color:var(--blood);color:var(--blood)}
-.mb{padding:20px 22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
-.mb::-webkit-scrollbar{width:6px}
-.mb::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
-.mf{padding:14px 22px;border-top:1px solid var(--line-soft);display:flex;gap:10px;justify-content:flex-end;flex:none}
-
-.flabel{display:block;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-faint);margin-bottom:6px}
-.finp{
-  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
-  background:var(--bg-2);color:var(--txt);font-size:13.5px;outline:none;transition:.18s;
-}
-.finp:focus{border-color:var(--gold-dim);box-shadow:0 0 0 3px rgba(227,179,82,.10)}
-.finp::placeholder{color:var(--txt-faint)}
-textarea.finp{resize:vertical;min-height:90px;line-height:1.55}
-select.finp{cursor:pointer}
-select.finp option{background:var(--bg-2)}
-.mrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:480px){.mrow{grid-template-columns:1fr}}
-
-.mbtn{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;letter-spacing:.4px;transition:.18s}
-.mbtn.ghost{border:1px solid var(--line);color:var(--txt-soft)}
-.mbtn.ghost:hover{border-color:var(--txt-faint);color:var(--txt)}
-.mbtn.gold{background:linear-gradient(180deg,rgba(227,179,82,.22),rgba(227,179,82,.08));border:1px solid var(--gold-dim);color:var(--gold)}
-.mbtn.gold:hover{border-color:var(--gold)}
-
-/* toast */
-.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--txt);padding:12px 20px;border-radius:11px;font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* quick stats strip */
-.stats-strip{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-.stat-chip{
-  display:flex;align-items:center;gap:8px;padding:10px 14px;
-  border-radius:10px;border:1px solid var(--line);background:var(--panel);
-}
-.stat-chip .n{font-family:var(--display);font-size:20px;font-weight:700;line-height:1}
-.stat-chip .l{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-faint)}
-
-/* confirm overlay */
-.confirm-box{background:linear-gradient(160deg,var(--panel-2),var(--bg-1));border:1px solid var(--blood-dim);border-radius:14px;padding:22px;max-width:360px;width:100%;box-shadow:var(--shadow)}
-.confirm-box h4{font-family:var(--display);font-size:16px;margin-bottom:8px;color:var(--txt)}
-.confirm-box p{font-size:13px;color:var(--txt-soft);line-height:1.55;margin-bottom:18px}
-.confirm-row{display:flex;gap:10px;justify-content:flex-end}
-.mbtn.red{background:linear-gradient(180deg,rgba(198,42,48,.22),rgba(198,42,48,.08));border:1px solid var(--blood-dim);color:var(--blood)}
-.mbtn.red:hover{border-color:var(--blood)}
-
-@media(max-width:640px){
-  .htools .btn span{display:none}
-  .stats-strip{gap:8px}
-  .stat-chip{padding:8px 10px}
-}
-
-@media(max-width:560px){}
-
-/* AF-BRAND-V2 unified header: emoji crest + wordmark image */
-.brand{display:flex;align-items:center;gap:13px;min-width:0}
-.brand .crest{width:42px;height:42px;flex:none;border-radius:11px;display:grid;place-items:center;
-  background:radial-gradient(circle at 30% 25%,#22262f,#101218);
-  border:1px solid var(--gold-dim);box-shadow:inset 0 0 14px rgba(227,179,82,.18);font-size:20px;line-height:1;overflow:hidden}
-.brand .crest img{width:100%;height:100%;object-fit:contain;padding:5px}
-.brand .bcol{display:flex;flex-direction:column;min-width:0;line-height:1}
-.brand .bcol .bmark{height:22px !important;width:auto !important;display:block;max-width:none;margin:0}
-.brand .bcol .bsub{font-size:11px;color:var(--txt-faint,#646b78);letter-spacing:2.2px;text-transform:uppercase;margin-top:5px}
-@media(max-width:560px){.brand .bcol .bsub{display:none}}
-</style>
-</head>
-<body>
-
-<!-- ===================== TOP BAR ===================== -->
-<header class="top">
-  <div class="brand">
-    <div class="crest">📜</div>
-    <div class="bcol">
-      <img class="bmark" src="arcanaforge-wordmark.png" alt="ArcanaForge">
-      <div class="bsub">Campaign Notes</div>
-    </div>
-  </div>
-  <div class="htools">
-    <button class="btn ghost" onclick="location.href='dashboard.html'">
-      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      <span>Dashboard</span>
-    </button>
-    <button class="btn" id="exportBtn">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-      <span>Export</span>
-    </button>
-    <button class="btn" id="importBtn">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-      <span>Import</span>
-    </button>
-    <input type="file" id="fileImport" accept="application/json" hidden>
-  </div>
-</header>
-
-<div class="wrap">
-
-  <!-- stats strip -->
-  <div class="stats-strip" id="statsStrip"></div>
-
-  <!-- tab nav -->
-  <div class="tabnav">
-    <button class="active" data-tab="sessions" onclick="switchTab('sessions')">Sessions <span class="tab-count" id="cnt-sessions">0</span></button>
-    <button data-tab="arcs" onclick="switchTab('arcs')">Arcs <span class="tab-count" id="cnt-arcs">0</span></button>
-    <button data-tab="threads" onclick="switchTab('threads')">Threads <span class="tab-count" id="cnt-threads">0</span></button>
-    <button data-tab="notes" onclick="switchTab('notes')">Notes <span class="tab-count" id="cnt-notes">0</span></button>
-    <button data-tab="party" onclick="switchTab('party')">Party Board <span class="tab-count" id="cnt-party">0</span></button>
-  </div>
-
-  <!-- ===================== SESSIONS ===================== -->
-  <div class="layout" id="tab-sessions">
-    <div class="list-panel">
-      <div class="list-header">
-        <h3>Sessions</h3>
-        <button class="add-btn" onclick="openModal('session')">+ New Session</button>
-      </div>
-      <div class="list-body" id="session-list"></div>
-    </div>
-    <div class="detail-panel" id="session-detail">
-      <div class="detail-empty">
-        <div class="ico">⚔️</div>
-        <p>Select a session from the list, or add your first one to start building your campaign history.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== ARCS ===================== -->
-  <div class="layout" id="tab-arcs" style="display:none">
-    <div class="list-panel">
-      <div class="list-header">
-        <h3>Story Arcs</h3>
-        <button class="add-btn" onclick="openModal('arc')">+ New Arc</button>
-      </div>
-      <div class="list-body" id="arc-list"></div>
-    </div>
-    <div class="detail-panel" id="arc-detail">
-      <div class="detail-empty">
-        <div class="ico">🌐</div>
-        <p>Arcs are the big story chapters of your campaign — major plotlines, villains, and quests.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== THREADS ===================== -->
-  <div class="layout" id="tab-threads" style="display:none">
-    <div class="list-panel">
-      <div class="list-header">
-        <h3>Plot Threads</h3>
-        <button class="add-btn" onclick="openModal('thread')">+ New Thread</button>
-      </div>
-      <div class="list-body" id="thread-list"></div>
-    </div>
-    <div class="detail-panel" id="thread-detail">
-      <div class="detail-empty">
-        <div class="ico">🧵</div>
-        <p>Track open hooks, mysteries, and unresolved conflicts. Mark them resolved when the party closes the loop.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== NOTES ===================== -->
-  <div class="layout" id="tab-notes" style="display:none">
-    <div class="list-panel">
-      <div class="list-header">
-        <h3>GM Notes</h3>
-        <button class="add-btn" onclick="openModal('note')">+ New Note</button>
-      </div>
-      <div class="list-body" id="note-list"></div>
-    </div>
-    <div class="detail-panel" id="note-detail">
-      <div class="detail-empty">
-        <div class="ico">📝</div>
-        <p>Freeform notes for anything at the table — world lore, NPC secrets, session prep, rule reminders.</p>
-      </div>
-    </div>
-  </div>
-
-  <style>
-    #tab-party{display:block;max-width:860px;margin:0 auto}
-    .pb-card{background:linear-gradient(180deg,var(--panel,#161922),#10131b);border:1px solid #2a2f3d;border-radius:14px;padding:18px 20px;margin-bottom:14px}
-    .pb-compose textarea{width:100%;min-height:74px;resize:vertical;background:#0d1017;border:1px solid #2a2f3d;border-radius:10px;color:#e7e3d8;font-family:inherit;font-size:.95rem;padding:11px 13px}
-    .pb-compose input{width:100%;background:#0d1017;border:1px solid #2a2f3d;border-radius:10px;color:#e7e3d8;font-family:inherit;font-size:.95rem;padding:10px 13px;margin-bottom:10px}
-    .pb-compose input:focus,.pb-compose textarea:focus{outline:none;border-color:#9c7d3c}
-    .pb-row{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
-    .pb-vis{display:flex;gap:6px}
-    .pb-vis button{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:99px;padding:6px 15px;font-size:.8rem;cursor:pointer;font-family:inherit;letter-spacing:.04em}
-    .pb-vis button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.08)}
-    .pb-vis button.dm.on{border-color:#7e2226;color:#d98a8d;background:rgba(198,42,48,.08)}
-    .pb-kind{display:flex;gap:6px}
-    .pb-kind button{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:99px;padding:6px 15px;font-size:.8rem;cursor:pointer;font-family:inherit;letter-spacing:.04em}
-    .pb-kind button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.08)}
-    .pb-filter{display:flex;gap:8px;margin:0 0 14px}
-    .pb-filter button{border:1px solid #21252f;background:none;color:#6f6c63;border-radius:99px;padding:6px 16px;font-size:.78rem;cursor:pointer;font-family:inherit;letter-spacing:.05em}
-    .pb-filter button.on{border-color:#9c7d3c;color:#e3b352;background:rgba(227,179,82,.07)}
-    .pb-note.session{border-color:#9c7d3c;border-left:3px solid #e3b352;background:linear-gradient(180deg,#1b1a14,#12141c)}
-    .pb-note.session h4{font-size:1.15rem}
-    .pb-sess{border:1px solid #9c7d3c;color:#e3b352;border-radius:99px;padding:2px 10px;letter-spacing:.08em;font-size:.7rem}
-    .pb-post{margin-left:auto;border:0;border-radius:10px;padding:10px 24px;font-weight:600;cursor:pointer;font-family:inherit;background:linear-gradient(180deg,#e3b352,#c9a24b);color:#0a0c11}
-    .pb-cancel{border:1px solid #2a2f3d;background:none;color:#b4b0a4;border-radius:10px;padding:9px 16px;cursor:pointer;font-family:inherit}
-    .pb-note h4{font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.05em;color:#e3b352;margin-bottom:6px}
-    .pb-note .pb-body{white-space:pre-wrap;color:#d5d1c6;font-size:.94rem}
-    .pb-meta{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.78rem;color:#6f6c63}
-    .pb-meta .pb-dm{border:1px solid #7e2226;color:#d98a8d;border-radius:99px;padding:2px 10px;letter-spacing:.08em}
-    .pb-meta button{background:none;border:0;color:#6f6c63;cursor:pointer;font-size:.78rem;font-family:inherit;padding:2px 4px}
-    .pb-meta button:hover{color:#e3b352}
-    /* reactions */
-    .pb-reacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;align-items:center}
-    .pb-react{display:inline-flex;align-items:center;gap:5px;border:1px solid #2a2f3d;background:#0d1017;border-radius:99px;
-      padding:3px 10px;font-size:.86rem;cursor:pointer;font-family:inherit;color:#d5d1c6;transition:.12s;position:relative}
-    .pb-react:hover{border-color:#9c7d3c}
-    .pb-react.mine{border-color:#9c7d3c;background:rgba(227,179,82,.12);color:#e3b352}
-    .pb-react .rc{font-size:.76rem;font-variant-numeric:tabular-nums;color:#9aa0ad}
-    .pb-react.mine .rc{color:#e3b352}
-    .pb-addreact{border:1px dashed #2a2f3d;background:none;color:#6f6c63;border-radius:99px;width:28px;height:26px;
-      cursor:pointer;font-size:.9rem;line-height:1;transition:.12s}
-    .pb-addreact:hover{border-color:#9c7d3c;color:#e3b352}
-    /* who-reacted tooltip */
-    .pb-react .who{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
-      background:#0a0c11;border:1px solid #2a2f3d;border-radius:8px;padding:7px 11px;font-size:.76rem;color:#d5d1c6;
-      white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;
-      transition:.13s;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.55)}
-    .pb-react .who b{color:#e3b352;font-weight:600}
-    .pb-react:hover .who{opacity:1}
-    /* emoji picker popover */
-    .pb-picker{position:absolute;z-index:60;background:#181b24;border:1px solid #9c7d3c;border-radius:12px;
-      padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;box-shadow:0 14px 40px rgba(0,0,0,.6)}
-    .pb-picker button{width:34px;height:34px;font-size:1.2rem;border:0;background:none;border-radius:8px;cursor:pointer;line-height:1}
-    .pb-picker button:hover{background:rgba(227,179,82,.14)}
-    .pb-empty{text-align:center;color:#6f6c63;padding:44px 20px}
-    .pb-empty .ico{font-size:2rem;margin-bottom:10px}
-  </style>
-  <div id="tab-party" style="display:none">
-    <div id="pb-unlinked" class="pb-card pb-empty" style="display:none">
-      <div class="ico">🔗</div>
-      <p>The Party Board is shared with everyone at your table.<br>
-         <a href="campaign.html" style="color:#e3b352">Link a campaign</a> to start posting.</p>
-    </div>
-    <div id="pb-linked" style="display:none">
-      <div class="pb-card pb-compose">
-        <input type="text" id="pb-title" placeholder="Title (optional)" maxlength="120">
-        <textarea id="pb-body" placeholder="What does the party need to remember?"></textarea>
-        <div class="pb-row">
-          <div class="pb-kind" id="pb-kind" style="display:none">
-            <button type="button" id="pb-kind-note" class="on" onclick="pbSetKind('note')">💬 Note</button>
-            <button type="button" id="pb-kind-session" onclick="pbSetKind('session')">📜 Session Recap</button>
-          </div>
-          <div class="pb-vis" id="pb-vis" style="display:none">
-            <button type="button" id="pb-vis-party" class="on" onclick="pbSetVis('party')">Party</button>
-            <button type="button" id="pb-vis-dm" class="dm" onclick="pbSetVis('dm')">DM Only</button>
-          </div>
-          <button class="pb-cancel" id="pb-cancel" style="display:none" onclick="pbCancelEdit()">Cancel</button>
-          <button class="pb-post" id="pb-post" onclick="pbSubmit()">Post</button>
-        </div>
-      </div>
-      <div class="pb-filter" id="pb-filter">
-        <button data-f="all" class="on">All</button>
-        <button data-f="session">📜 Adventure Log</button>
-        <button data-f="note">💬 Notes</button>
-      </div>
-      <div id="pb-feed"></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ===================== SESSION MODAL ===================== -->
-<div class="scrim" id="modal-session">
-  <div class="modal">
-    <div class="mh">
-      <h3 id="session-modal-title">New Session</h3>
-      <button class="close" onclick="closeModal('session')">✕</button>
-    </div>
-    <div class="mb">
-      <div class="mrow">
-        <div>
-          <label class="flabel">Session #</label>
-          <input class="finp" type="number" id="s-num" placeholder="1" min="1">
-        </div>
-        <div>
-          <label class="flabel">Date Played</label>
-          <input class="finp" type="date" id="s-date">
-        </div>
-      </div>
-      <div>
-        <label class="flabel">Session Title</label>
-        <input class="finp" type="text" id="s-title" placeholder="e.g. The Fall of Ashveil">
-      </div>
-      <div>
-        <label class="flabel">Summary</label>
-        <textarea class="finp" id="s-summary" placeholder="What happened this session?" style="min-height:120px"></textarea>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="mbtn ghost" onclick="closeModal('session')">Cancel</button>
-      <button class="mbtn gold" onclick="saveSession()">Save Session</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== ARC MODAL ===================== -->
-<div class="scrim" id="modal-arc">
-  <div class="modal">
-    <div class="mh">
-      <h3 id="arc-modal-title">New Story Arc</h3>
-      <button class="close" onclick="closeModal('arc')">✕</button>
-    </div>
-    <div class="mb">
-      <div>
-        <label class="flabel">Arc Title</label>
-        <input class="finp" type="text" id="a-title" placeholder="e.g. The Crimson Throne">
-      </div>
-      <div>
-        <label class="flabel">Status</label>
-        <select class="finp" id="a-status">
-          <option value="planned">Planned</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
-      <div>
-        <label class="flabel">Description</label>
-        <textarea class="finp" id="a-desc" placeholder="What is this arc about?" style="min-height:110px"></textarea>
-      </div>
-      <div>
-        <label class="flabel">GM Notes (private)</label>
-        <textarea class="finp" id="a-gmnotes" placeholder="Hidden plans, villain motives, twist reveals…" style="min-height:80px"></textarea>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="mbtn ghost" onclick="closeModal('arc')">Cancel</button>
-      <button class="mbtn gold" onclick="saveArc()">Save Arc</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== THREAD MODAL ===================== -->
-<div class="scrim" id="modal-thread">
-  <div class="modal">
-    <div class="mh">
-      <h3 id="thread-modal-title">New Plot Thread</h3>
-      <button class="close" onclick="closeModal('thread')">✕</button>
-    </div>
-    <div class="mb">
-      <div>
-        <label class="flabel">Thread Title</label>
-        <input class="finp" type="text" id="t-title" placeholder="e.g. The missing merchant's ledger">
-      </div>
-      <div>
-        <label class="flabel">Status</label>
-        <select class="finp" id="t-status">
-          <option value="open">Open</option>
-          <option value="resolved">Resolved</option>
-        </select>
-      </div>
-      <div>
-        <label class="flabel">Description</label>
-        <textarea class="finp" id="t-desc" placeholder="What's the hook? Who's involved?" style="min-height:110px"></textarea>
-      </div>
-      <div>
-        <label class="flabel">Resolution (if resolved)</label>
-        <textarea class="finp" id="t-resolution" placeholder="How did it end?" style="min-height:70px"></textarea>
-      </div>
-    </div>
-    <div class="mf">
-      <button class="mbtn ghost" onclick="closeModal('thread')">Cancel</button>
-      <button class="mbtn gold" onclick="saveThread()">Save Thread</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== NOTE MODAL ===================== -->
-<div class="scrim" id="modal-note">
-  <div class="modal">
-    <div class="mh">
-      <h3 id="note-modal-title">New Note</h3>
-      <button class="close" onclick="closeModal('note')">✕</button>
-    </div>
-    <div class="mb">
-      <div>
-        <label class="flabel">Title</label>
-        <input class="finp" type="text" id="n-title" placeholder="e.g. The Prophecy of the Silver Star">
-      </div>
-      <div>
-        <label class="flabel">Body</label>
-        <textarea class="finp" id="n-body" placeholder="Write anything…" style="min-height:160px"></textarea>
-      </div>
-      <div>
-        <label class="flabel">Tags (comma-separated)</label>
-        <input class="finp" type="text" id="n-tags" placeholder="lore, secret, prep">
-      </div>
-    </div>
-    <div class="mf">
-      <button class="mbtn ghost" onclick="closeModal('note')">Cancel</button>
-      <button class="mbtn gold" onclick="saveNote()">Save Note</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== CONFIRM MODAL ===================== -->
-<div class="scrim" id="modal-confirm">
-  <div class="confirm-box">
-    <h4 id="confirm-title">Delete this entry?</h4>
-    <p id="confirm-msg">This cannot be undone.</p>
-    <div class="confirm-row">
-      <button class="mbtn ghost" onclick="closeModal('confirm')">Cancel</button>
-      <button class="mbtn red" id="confirm-ok">Delete</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
 <script src="vendor/supabase-js-2.110.2.min.js"></script>
 <script src="supabase-config.js"></script>
 <script src="arcanaforge-sync.js"></script>
 <script>
-/* =====================================================================
-   THE TABLE — Campaign Notes & Story Tracker
-   ===================================================================== */
-const STORE_KEY = 'dnd-campaign-notes-v1';
-
-/* ---- data model ---- */
-let data = load();
-
-function load(){
-  try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if(raw){ const d=JSON.parse(raw); if(d && d.sessions) return d; }
-  }catch(e){}
-  return { sessions:[], arcs:[], threads:[], notes:[] };
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<style>
+:root{
+  --bg:#0a0c11;--panel:#161922;--panel-deep:#10131b;--line:#2a2f3d;--line-soft:#21252f;
+  --gold:#e3b352;--gold-soft:#c9a24b;--gold-dim:#9c7d3c;--blood:#c62a30;
+  --txt:#e7e3d8;--txt-soft:#b4b0a4;--txt-faint:#6f6c63;
+  --display:'Cinzel',serif;--ui:'Spline Sans',system-ui,sans-serif;--radius:16px;
 }
-function save(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }catch(e){
-    toast('⚠ Storage full — could not save.');
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);font-weight:300;line-height:1.6;min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+header{border-bottom:1px solid var(--line-soft);background:rgba(10,12,17,.85);position:sticky;top:0;backdrop-filter:blur(8px)}
+.nav{max-width:760px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.nav a{display:flex;align-items:center;gap:10px}
+.nav img{height:30px}
+.nav .back{color:var(--txt-soft);font-size:.9rem}
+h1{font-family:var(--display);font-weight:600;letter-spacing:.1em;font-size:1.7rem;text-align:center;margin:42px 0 8px;color:var(--gold)}
+.lede{text-align:center;color:var(--txt-soft);max-width:520px;margin:0 auto 40px;font-size:.96rem}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel-deep));border:1px solid var(--line);border-radius:var(--radius);padding:26px;margin-bottom:22px}
+.card h2{font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:.08em;color:var(--txt);margin-bottom:6px}
+.card .hint{color:var(--txt-faint);font-size:.85rem;margin-bottom:16px}
+label{display:block;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dim);margin:14px 0 6px}
+input[type=text]{
+  width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+  background:#0d1017;color:var(--txt);font-family:var(--ui);font-size:1rem;
 }
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function esc(s){ const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; }
-
-/* ---- active selections ---- */
-let active = { sessions:null, arcs:null, threads:null, notes:null };
-let currentTab = 'sessions';
-
-/* ---- toast ---- */
-let toastT;
-function toast(msg){
-  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('on');
-  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2200);
+input:focus{outline:none;border-color:var(--gold-dim)}
+.btn{
+  display:inline-block;margin-top:18px;padding:12px 26px;border-radius:10px;border:0;cursor:pointer;
+  font-family:var(--ui);font-weight:600;font-size:.95rem;
+  background:linear-gradient(180deg,var(--gold),var(--gold-soft));color:var(--bg);
+  transition:transform .15s;
 }
-
-/* ---- tab switching ---- */
-function switchTab(tab){
-  currentTab = tab;
-  ['sessions','arcs','threads','notes','party'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display = t===tab?'':'none';
-    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active', t===tab);
-  });
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--txt-soft)}
+.btn.danger{background:none;border:1px solid #7e2226;color:#d98a8d}
+.msg{margin-top:14px;font-size:.9rem;display:none}
+.msg.err{color:#d98a8d;display:block}
+.msg.ok{color:#8fce9a;display:block}
+.code-badge{
+  font-family:ui-monospace,monospace;font-size:1.8rem;letter-spacing:.14em;color:var(--gold);
+  background:#0d1017;border:1px dashed var(--gold-dim);border-radius:12px;
+  padding:14px 22px;display:inline-flex;align-items:center;gap:16px;margin:10px 0 4px;
 }
+.code-badge button{background:none;border:1px solid var(--line);color:var(--txt-soft);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.75rem;font-family:var(--ui)}
+.roster{list-style:none;margin-top:8px}
+.roster li{display:flex;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line-soft);font-size:.94rem}
+.roster .role{color:var(--gold-dim);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase}
+.pill{display:inline-block;padding:3px 12px;border-radius:99px;font-size:.75rem;letter-spacing:.08em;border:1px solid var(--gold-dim);color:var(--gold)}
+.hidden{display:none}
+.setup-note{border-color:var(--gold-dim)}
+.setup-note code{background:#0d1017;padding:2px 7px;border-radius:6px;font-size:.85em;color:var(--gold-soft)}
+</style>
+</head>
+<body>
 
-/* ====================================================================
-   RENDER HELPERS
-   ==================================================================== */
-function statusBadge(status){
-  const map = {
-    active:    ['s-active',   '●', 'Active'],
-    planned:   ['s-planned',  '●', 'Planned'],
-    completed: ['s-completed','●', 'Completed'],
-    open:      ['s-open',     '●', 'Open'],
-    resolved:  ['s-resolved', '●', 'Resolved'],
-  };
-  const [cls,,label] = map[status]||['s-planned','●',status];
-  return `<span class="li-badge ${cls}"><span class="dot"></span>${label}</span>`;
-}
+<header>
+  <div class="nav">
+    <a href="./"><img src="arcanaforge-mark.png" alt=""><img src="arcanaforge-wordmark.png" alt="ArcanaForge" style="height:20px"></a>
+    <a class="back" href="dashboard.html">← Dashboard</a>
+  </div>
+</header>
 
-function fmtDate(iso){
-  if(!iso) return '';
-  try{
-    const d = new Date(iso+'T12:00:00');
-    return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-  }catch(e){ return iso; }
-}
+<div class="wrap">
+  <h1>Campaign Link</h1>
+  <p class="lede">Link this device to a shared campaign. Notes, group inventory, and character
+     sheets sync live between everyone at the table — solo mode keeps working without a link.</p>
 
-function emptyList(msg){
-  return `<div class="list-empty"><div class="ico">✦</div><p>${msg}</p></div>`;
-}
+  <!-- Shown until supabase-config.js has real values -->
+  <div class="card setup-note hidden" id="not-configured">
+    <h2>Sync isn't set up yet</h2>
+    <p class="hint" style="margin-bottom:0">The site owner needs to add the Supabase project URL and
+       anon key to <code>supabase-config.js</code>. Until then, all tools run in solo mode.</p>
+  </div>
 
-/* ====================================================================
-   STATS STRIP
-   ==================================================================== */
-function renderStats(){
-  const sessions = data.sessions.length;
-  const arcs     = data.arcs.length;
-  const openTh   = data.threads.filter(t=>t.status==='open').length;
-  const notes    = data.notes.length;
-
-  document.getElementById('statsStrip').innerHTML = `
-    <div class="stat-chip"><span class="n" style="color:var(--gold)">${sessions}</span><div><div class="l">Sessions</div></div></div>
-    <div class="stat-chip"><span class="n" style="color:var(--arc)">${arcs}</span><div><div class="l">Arcs</div></div></div>
-    <div class="stat-chip"><span class="n" style="color:var(--thread)">${openTh}</span><div><div class="l">Open Threads</div></div></div>
-    <div class="stat-chip"><span class="n" style="color:var(--txt-soft)">${notes}</span><div><div class="l">Notes</div></div></div>
-  `;
-
-  document.getElementById('cnt-sessions').textContent = sessions;
-  document.getElementById('cnt-arcs').textContent     = arcs;
-  document.getElementById('cnt-threads').textContent  = data.threads.length;
-  document.getElementById('cnt-notes').textContent    = notes;
-}
-
-/* ====================================================================
-   SESSIONS
-   ==================================================================== */
-function renderSessions(){
-  const el = document.getElementById('session-list');
-  if(!data.sessions.length){
-    el.innerHTML = emptyList('No sessions logged yet. Add your first one!');
-    return;
-  }
-  const sorted = [...data.sessions].sort((a,b)=>(b.num||0)-(a.num||0));
-  el.innerHTML = sorted.map(s=>`
-    <div class="list-item ${active.sessions===s.id?'active':''}" onclick="selectSession('${s.id}')">
-      <div class="li-top">
-        <span class="li-icon">⚔️</span>
-        <div style="flex:1;min-width:0">
-          <div class="li-name">Session ${esc(s.num||'?')}${s.title?' — '+esc(s.title):''}</div>
-          <div class="li-meta">${s.date?fmtDate(s.date):'No date'} · ${(s.moments||[]).length} key moment${(s.moments||[]).length!==1?'s':''}</div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function selectSession(id){
-  active.sessions = id;
-  renderSessions();
-  const s = data.sessions.find(x=>x.id===id);
-  if(!s) return;
-  const el = document.getElementById('session-detail');
-
-  const momentItems = (s.moments||[]).map((m,i)=>`
-    <div class="moment-item">
-      <span class="moment-bullet">◆</span>
-      <span class="moment-text">${esc(m)}</span>
-      <button class="moment-del" onclick="deleteMoment('${s.id}',${i})" title="Remove">✕</button>
-    </div>`).join('');
-
-  el.innerHTML = `
-    <div class="dh">
-      <div class="dh-icon">⚔️</div>
-      <div class="dh-body">
-        <div class="dh-title">Session ${esc(s.num||'?')}${s.title?' — '+esc(s.title):''}</div>
-        <div class="dh-meta">${s.date?fmtDate(s.date):'No date set'}</div>
-      </div>
-      <div class="dh-actions">
-        <button class="icon-btn" onclick="openModal('session','${s.id}')" title="Edit">✎</button>
-        <button class="icon-btn danger" onclick="confirmDelete('session','${s.id}','Session ${esc(s.num||'?')}')" title="Delete">🗑</button>
-      </div>
+  <!-- Not linked: create or join -->
+  <div id="unlinked" class="hidden">
+    <div class="card">
+      <h2>Create a campaign <span class="pill">Game Master</span></h2>
+      <p class="hint">You'll get a join code to share with your players.</p>
+      <label for="c-name">Campaign name</label>
+      <input type="text" id="c-name" placeholder="Rime of the Frostmaiden" maxlength="60">
+      <label for="c-gm">Your name at the table</label>
+      <input type="text" id="c-gm" placeholder="Geo" maxlength="30">
+      <br><button class="btn" id="btn-create">Forge the campaign</button>
+      <p class="msg" id="msg-create"></p>
     </div>
-    <div class="db">
-      <div class="field-group">
-        <div class="field-label">Summary</div>
-        <div class="field-value ${s.summary?'':'empty-val'}">${s.summary?esc(s.summary):'No summary written yet.'}</div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Key Moments</div>
-        <div class="moments-list" id="moments-${s.id}">
-          ${momentItems||'<div style="color:var(--txt-faint);font-size:13px;font-style:italic">No key moments added yet.</div>'}
-        </div>
-        <div class="moment-add-row">
-          <input class="moment-inp" type="text" id="moment-inp-${s.id}" placeholder="Add a key moment…" onkeydown="if(event.key==='Enter')addMoment('${s.id}')">
-          <button class="moment-add-btn" onclick="addMoment('${s.id}')">+ Add</button>
-        </div>
-      </div>
-    </div>`;
-}
 
-function addMoment(sessionId){
-  const inp = document.getElementById('moment-inp-'+sessionId);
-  const text = inp.value.trim();
-  if(!text) return;
-  const s = data.sessions.find(x=>x.id===sessionId);
-  if(!s) return;
-  if(!s.moments) s.moments=[];
-  s.moments.push(text);
-  inp.value='';
-  save();
-  selectSession(sessionId);
-  toast('Moment added.');
-}
-
-function deleteMoment(sessionId, idx){
-  const s = data.sessions.find(x=>x.id===sessionId);
-  if(!s||!s.moments) return;
-  s.moments.splice(idx,1);
-  save();
-  selectSession(sessionId);
-}
-
-/* session modal */
-let editingSessionId = null;
-function openSessionModal(id){
-  editingSessionId = id||null;
-  const s = id ? data.sessions.find(x=>x.id===id) : null;
-  document.getElementById('session-modal-title').textContent = s ? 'Edit Session' : 'New Session';
-  document.getElementById('s-num').value   = s ? (s.num||'') : nextSessionNum();
-  document.getElementById('s-date').value  = s ? (s.date||'') : '';
-  document.getElementById('s-title').value = s ? (s.title||'') : '';
-  document.getElementById('s-summary').value = s ? (s.summary||'') : '';
-}
-function nextSessionNum(){
-  if(!data.sessions.length) return 1;
-  return Math.max(...data.sessions.map(s=>s.num||0))+1;
-}
-function saveSession(){
-  const num   = parseInt(document.getElementById('s-num').value)||null;
-  const date  = document.getElementById('s-date').value.trim();
-  const title = document.getElementById('s-title').value.trim();
-  const summary = document.getElementById('s-summary').value.trim();
-  if(!num && !title){ toast('Please enter a session number or title.'); return; }
-  if(editingSessionId){
-    const s = data.sessions.find(x=>x.id===editingSessionId);
-    if(s){ s.num=num; s.date=date; s.title=title; s.summary=summary; }
-  } else {
-    data.sessions.push({ id:uid(), num, date, title, summary, moments:[], createdAt:Date.now() });
-  }
-  save(); closeModal('session'); renderAll();
-  if(editingSessionId) selectSession(editingSessionId);
-  toast(editingSessionId?'Session updated.':'Session logged.');
-}
-
-/* ====================================================================
-   ARCS
-   ==================================================================== */
-function renderArcs(){
-  const el = document.getElementById('arc-list');
-  if(!data.arcs.length){ el.innerHTML = emptyList('No story arcs yet. Add the first chapter of your campaign.'); return; }
-  const order = {active:0,planned:1,completed:2};
-  const sorted = [...data.arcs].sort((a,b)=>(order[a.status]||1)-(order[b.status]||1));
-  el.innerHTML = sorted.map(a=>`
-    <div class="list-item ${active.arcs===a.id?'active':''}" onclick="selectArc('${a.id}')">
-      <div class="li-top">
-        <span class="li-icon">🌐</span>
-        <div style="flex:1;min-width:0">
-          <div class="li-name">${esc(a.title)}</div>
-          <div style="margin-top:4px">${statusBadge(a.status)}</div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function selectArc(id){
-  active.arcs = id;
-  renderArcs();
-  const a = data.arcs.find(x=>x.id===id);
-  if(!a) return;
-  const el = document.getElementById('arc-detail');
-  el.innerHTML = `
-    <div class="dh">
-      <div class="dh-icon">🌐</div>
-      <div class="dh-body">
-        <div class="dh-title">${esc(a.title)}</div>
-        <div class="dh-meta" style="margin-top:6px">${statusBadge(a.status)}</div>
-      </div>
-      <div class="dh-actions">
-        <button class="icon-btn" onclick="openModal('arc','${a.id}')" title="Edit">✎</button>
-        <button class="icon-btn danger" onclick="confirmDelete('arc','${a.id}','${esc(a.title)}')" title="Delete">🗑</button>
-      </div>
+    <div class="card">
+      <h2>Join a campaign <span class="pill">Player</span></h2>
+      <p class="hint">Enter the code your GM shared with you.</p>
+      <label for="j-code">Join code</label>
+      <input type="text" id="j-code" placeholder="FORGE-XXXXXXXX" maxlength="24" style="text-transform:uppercase">
+      <label for="j-name">Your name at the table</label>
+      <input type="text" id="j-name" placeholder="Gun" maxlength="30">
+      <br><button class="btn" id="btn-join">Join the table</button>
+      <p class="msg" id="msg-join"></p>
     </div>
-    <div class="db">
-      <div class="two-col">
-        <div class="field-group">
-          <div class="field-label">Status</div>
-          <div style="margin-top:4px">${statusBadge(a.status)}</div>
-        </div>
-        <div class="field-group">
-          <div class="field-label">Quick Change</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
-            ${['planned','active','completed'].map(st=>`<button onclick="setArcStatus('${a.id}','${st}')" style="font-size:11px;padding:4px 9px;border-radius:7px;border:1px solid var(--line);background:${a.status===st?'rgba(227,179,82,.16)':'var(--bg-2)'};color:${a.status===st?'var(--gold)':'var(--txt-faint)'};cursor:pointer;transition:.14s">${st.charAt(0).toUpperCase()+st.slice(1)}</button>`).join('')}
-          </div>
-        </div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Description</div>
-        <div class="field-value ${a.desc?'':'empty-val'}">${a.desc?esc(a.desc):'No description written yet.'}</div>
-      </div>
-      ${a.gmnotes?`<div class="field-group">
-        <div class="field-label" style="color:var(--blood-dim)">GM Notes (private)</div>
-        <div class="field-value" style="border-left:2px solid var(--blood-dim);padding-left:12px;color:var(--txt-soft)">${esc(a.gmnotes)}</div>
-      </div>`:''}
-    </div>`;
-}
+  </div>
 
-function setArcStatus(id, status){
-  const a = data.arcs.find(x=>x.id===id);
-  if(!a) return;
-  a.status = status;
-  save(); renderArcs(); selectArc(id); renderStats();
-  toast('Arc status updated.');
-}
-
-let editingArcId = null;
-function openArcModal(id){
-  editingArcId = id||null;
-  const a = id ? data.arcs.find(x=>x.id===id) : null;
-  document.getElementById('arc-modal-title').textContent = a ? 'Edit Arc' : 'New Story Arc';
-  document.getElementById('a-title').value   = a ? (a.title||'') : '';
-  document.getElementById('a-status').value  = a ? (a.status||'planned') : 'planned';
-  document.getElementById('a-desc').value    = a ? (a.desc||'') : '';
-  document.getElementById('a-gmnotes').value = a ? (a.gmnotes||'') : '';
-}
-function saveArc(){
-  const title   = document.getElementById('a-title').value.trim();
-  const status  = document.getElementById('a-status').value;
-  const desc    = document.getElementById('a-desc').value.trim();
-  const gmnotes = document.getElementById('a-gmnotes').value.trim();
-  if(!title){ toast('Please enter an arc title.'); return; }
-  if(editingArcId){
-    const a = data.arcs.find(x=>x.id===editingArcId);
-    if(a){ a.title=title; a.status=status; a.desc=desc; a.gmnotes=gmnotes; }
-  } else {
-    data.arcs.push({ id:uid(), title, status, desc, gmnotes, createdAt:Date.now() });
-  }
-  save(); closeModal('arc'); renderAll();
-  if(editingArcId) selectArc(editingArcId);
-  toast(editingArcId?'Arc updated.':'Arc added.');
-}
-
-/* ====================================================================
-   THREADS
-   ==================================================================== */
-function renderThreads(){
-  const el = document.getElementById('thread-list');
-  if(!data.threads.length){ el.innerHTML = emptyList('No plot threads yet. Start tracking your open hooks and mysteries.'); return; }
-  const sorted = [...data.threads].sort((a,b)=>(a.status==='resolved'?1:0)-(b.status==='resolved'?1:0) || (b.createdAt||0)-(a.createdAt||0));
-  el.innerHTML = sorted.map(t=>`
-    <div class="list-item ${active.threads===t.id?'active':''}" onclick="selectThread('${t.id}')">
-      <div class="li-top">
-        <span class="li-icon">🧵</span>
-        <div style="flex:1;min-width:0">
-          <div class="li-name" style="${t.status==='resolved'?'opacity:.55':''}">${esc(t.title)}</div>
-          <div style="margin-top:4px">${statusBadge(t.status)}</div>
-        </div>
+  <!-- Linked: status -->
+  <div id="linked" class="hidden">
+    <div class="card">
+      <h2 id="l-name">Campaign</h2>
+      <p class="hint">Linked as <b id="l-me" style="color:var(--txt)"></b> · <span id="l-role" class="pill"></span></p>
+      <div id="gm-code-block" class="hidden">
+        <label>Share this code with your players</label>
+        <div class="code-badge"><span id="l-code"></span><button id="btn-copy">Copy</button></div>
       </div>
-    </div>`).join('');
-}
-
-function selectThread(id){
-  active.threads = id;
-  renderThreads();
-  const t = data.threads.find(x=>x.id===id);
-  if(!t) return;
-  const el = document.getElementById('thread-detail');
-  el.innerHTML = `
-    <div class="dh">
-      <div class="dh-icon">🧵</div>
-      <div class="dh-body">
-        <div class="dh-title">${esc(t.title)}</div>
-        <div class="dh-meta" style="margin-top:6px">${statusBadge(t.status)}</div>
-      </div>
-      <div class="dh-actions">
-        ${t.status==='open'
-          ? `<button class="icon-btn" onclick="resolveThread('${t.id}')" title="Mark Resolved" style="color:var(--ok);border-color:rgba(95,174,107,.4)">✓</button>`
-          : `<button class="icon-btn" onclick="reopenThread('${t.id}')" title="Reopen">↩</button>`}
-        <button class="icon-btn" onclick="openModal('thread','${t.id}')" title="Edit">✎</button>
-        <button class="icon-btn danger" onclick="confirmDelete('thread','${t.id}','${esc(t.title)}')" title="Delete">🗑</button>
-      </div>
+      <label>At the table</label>
+      <ul class="roster" id="roster"><li>Loading…</li></ul>
+      <button class="btn danger" id="btn-leave">Leave campaign</button>
+      <p class="msg" id="msg-leave"></p>
     </div>
-    <div class="db">
-      <div class="field-group">
-        <div class="field-label">Description</div>
-        <div class="field-value ${t.desc?'':'empty-val'}">${t.desc?esc(t.desc):'No description.'}</div>
-      </div>
-      ${t.resolution?`<div class="field-group">
-        <div class="field-label" style="color:var(--ok)">Resolution</div>
-        <div class="field-value" style="border-left:2px solid var(--ok);padding-left:12px;color:var(--txt-soft)">${esc(t.resolution)}</div>
-      </div>`:''}
-      ${t.resolvedAt?`<div class="field-group">
-        <div class="field-label">Resolved</div>
-        <div class="field-value" style="font-size:12px;color:var(--txt-faint)">${fmtDate(new Date(t.resolvedAt).toISOString().split('T')[0])}</div>
-      </div>`:''}
-    </div>`;
-}
-
-function resolveThread(id){
-  const t = data.threads.find(x=>x.id===id);
-  if(!t) return;
-  t.status='resolved'; t.resolvedAt=Date.now();
-  save(); renderThreads(); selectThread(id); renderStats();
-  toast('Thread marked resolved.');
-}
-function reopenThread(id){
-  const t = data.threads.find(x=>x.id===id);
-  if(!t) return;
-  t.status='open'; delete t.resolvedAt;
-  save(); renderThreads(); selectThread(id); renderStats();
-  toast('Thread reopened.');
-}
-
-let editingThreadId = null;
-function openThreadModal(id){
-  editingThreadId = id||null;
-  const t = id ? data.threads.find(x=>x.id===id) : null;
-  document.getElementById('thread-modal-title').textContent = t ? 'Edit Thread' : 'New Plot Thread';
-  document.getElementById('t-title').value      = t ? (t.title||'') : '';
-  document.getElementById('t-status').value     = t ? (t.status||'open') : 'open';
-  document.getElementById('t-desc').value       = t ? (t.desc||'') : '';
-  document.getElementById('t-resolution').value = t ? (t.resolution||'') : '';
-}
-function saveThread(){
-  const title      = document.getElementById('t-title').value.trim();
-  const status     = document.getElementById('t-status').value;
-  const desc       = document.getElementById('t-desc').value.trim();
-  const resolution = document.getElementById('t-resolution').value.trim();
-  if(!title){ toast('Please enter a thread title.'); return; }
-  if(editingThreadId){
-    const t = data.threads.find(x=>x.id===editingThreadId);
-    if(t){ t.title=title; t.status=status; t.desc=desc; t.resolution=resolution; }
-  } else {
-    data.threads.push({ id:uid(), title, status, desc, resolution, createdAt:Date.now() });
-  }
-  save(); closeModal('thread'); renderAll();
-  if(editingThreadId) selectThread(editingThreadId);
-  toast(editingThreadId?'Thread updated.':'Thread added.');
-}
-
-/* ====================================================================
-   NOTES
-   ==================================================================== */
-function renderNotes(){
-  const el = document.getElementById('note-list');
-  if(!data.notes.length){ el.innerHTML = emptyList('No notes yet. Capture lore, secrets, and session prep here.'); return; }
-  const sorted = [...data.notes].sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
-  el.innerHTML = sorted.map(n=>`
-    <div class="list-item ${active.notes===n.id?'active':''}" onclick="selectNote('${n.id}')">
-      <div class="li-top">
-        <span class="li-icon">📝</span>
-        <div style="flex:1;min-width:0">
-          <div class="li-name">${esc(n.title||'Untitled')}</div>
-          <div class="li-meta">${n.tags&&n.tags.length?n.tags.map(t=>'#'+esc(t)).join(' '):'No tags'}</div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function selectNote(id){
-  active.notes = id;
-  renderNotes();
-  const n = data.notes.find(x=>x.id===id);
-  if(!n) return;
-  const el = document.getElementById('note-detail');
-  const tagsHTML = (n.tags||[]).map(t=>`<span class="tag">${esc(t)}<span class="tag-del" onclick="removeTag('${n.id}','${esc(t)}')">✕</span></span>`).join('');
-  el.innerHTML = `
-    <div class="dh">
-      <div class="dh-icon">📝</div>
-      <div class="dh-body">
-        <div class="dh-title">${esc(n.title||'Untitled')}</div>
-        <div class="dh-meta">Updated ${n.updatedAt?fmtDate(new Date(n.updatedAt).toISOString().split('T')[0]):'—'}</div>
-      </div>
-      <div class="dh-actions">
-        <button class="icon-btn" onclick="openModal('note','${n.id}')" title="Edit">✎</button>
-        <button class="icon-btn danger" onclick="confirmDelete('note','${n.id}','${esc(n.title||'Untitled')}')" title="Delete">🗑</button>
-      </div>
+    <div class="card">
+      <h2>What syncs now</h2>
+      <p class="hint" style="margin-bottom:0">Shared tools pick up the link automatically:
+         Group Inventory and Campaign Notes are shared with the whole party (with a
+         GM-only notes section), and the GM can view every linked character sheet.
+         Tools without a shared mode yet keep working locally.</p>
     </div>
-    <div class="db">
-      <div class="field-group">
-        <div class="field-label">Tags</div>
-        <div class="tags-row" id="tags-row-${n.id}">
-          ${tagsHTML}
-          <input class="tag-inp" type="text" placeholder="+ add tag" onkeydown="if(event.key==='Enter')addTag('${n.id}',this.value,this)">
-        </div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Body</div>
-        <div class="field-value ${n.body?'':'empty-val'}">${n.body?esc(n.body):'Nothing written yet.'}</div>
-      </div>
-    </div>`;
-}
+  </div>
+</div>
 
-function addTag(noteId, val, inp){
-  const tag = val.trim().replace(/^#/,'').toLowerCase();
-  if(!tag) return;
-  const n = data.notes.find(x=>x.id===noteId);
-  if(!n) return;
-  if(!n.tags) n.tags=[];
-  if(!n.tags.includes(tag)) n.tags.push(tag);
-  inp.value='';
-  save(); selectNote(noteId); renderNotes();
-}
-function removeTag(noteId, tag){
-  const n = data.notes.find(x=>x.id===noteId);
-  if(!n||!n.tags) return;
-  n.tags = n.tags.filter(t=>t!==tag);
-  save(); selectNote(noteId); renderNotes();
-}
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const show = (id, on) => $(id).classList.toggle('hidden', !on);
+  const flash = (id, text, ok) => { const m=$(id); m.textContent=text; m.className='msg '+(ok?'ok':'err'); };
 
-let editingNoteId = null;
-function openNoteModal(id){
-  editingNoteId = id||null;
-  const n = id ? data.notes.find(x=>x.id===id) : null;
-  document.getElementById('note-modal-title').textContent = n ? 'Edit Note' : 'New Note';
-  document.getElementById('n-title').value = n ? (n.title||'') : '';
-  document.getElementById('n-body').value  = n ? (n.body||'') : '';
-  document.getElementById('n-tags').value  = n&&n.tags ? n.tags.join(', ') : '';
-}
-function saveNote(){
-  const title = document.getElementById('n-title').value.trim();
-  const body  = document.getElementById('n-body').value.trim();
-  const tags  = document.getElementById('n-tags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
-  if(!title && !body){ toast('Please enter a title or body.'); return; }
-  if(editingNoteId){
-    const n = data.notes.find(x=>x.id===editingNoteId);
-    if(n){ n.title=title; n.body=body; n.tags=tags; n.updatedAt=Date.now(); }
-  } else {
-    data.notes.push({ id:uid(), title, body, tags, createdAt:Date.now(), updatedAt:Date.now() });
-  }
-  save(); closeModal('note'); renderAll();
-  if(editingNoteId) selectNote(editingNoteId);
-  toast(editingNoteId?'Note updated.':'Note saved.');
-}
-
-/* ====================================================================
-   MODAL ROUTER
-   ==================================================================== */
-function openModal(type, id){
-  if(type==='session'){ openSessionModal(id); document.getElementById('modal-session').classList.add('on'); }
-  else if(type==='arc'){ openArcModal(id); document.getElementById('modal-arc').classList.add('on'); }
-  else if(type==='thread'){ openThreadModal(id); document.getElementById('modal-thread').classList.add('on'); }
-  else if(type==='note'){ openNoteModal(id); document.getElementById('modal-note').classList.add('on'); }
-}
-function closeModal(type){
-  document.getElementById('modal-'+type).classList.remove('on');
-}
-
-/* close on backdrop click */
-document.querySelectorAll('.scrim').forEach(s=>{
-  s.addEventListener('click', e=>{ if(e.target===s) s.classList.remove('on'); });
-});
-
-/* ====================================================================
-   DELETE / CONFIRM
-   ==================================================================== */
-let pendingDelete = null;
-function confirmDelete(type, id, label){
-  pendingDelete = {type, id};
-  document.getElementById('confirm-title').textContent = 'Delete "'+label+'"?';
-  document.getElementById('confirm-msg').textContent   = 'This entry and all its data will be permanently removed.';
-  document.getElementById('confirm-ok').onclick = executDelete;
-  document.getElementById('modal-confirm').classList.add('on');
-}
-function executDelete(){
-  if(!pendingDelete) return;
-  const {type, id} = pendingDelete;
-  data[type+'s'] = data[type+'s'].filter(x=>x.id!==id);
-  if(active[type+'s']===id) active[type+'s']=null;
-  save(); closeModal('confirm'); renderAll();
-  const panel = document.getElementById(type+'-detail');
-  if(panel) panel.innerHTML = `<div class="detail-empty"><div class="ico">✦</div><p>Entry deleted.</p></div>`;
-  toast('Deleted.');
-  pendingDelete=null;
-}
-
-/* ====================================================================
-   EXPORT / IMPORT
-   ==================================================================== */
-document.getElementById('exportBtn').onclick = ()=>{
-  const blob = new Blob([JSON.stringify({version:1, exportedAt:new Date().toISOString(), ...data},null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'campaign-notes-'+new Date().toISOString().slice(0,10)+'.json';
-  a.click(); URL.revokeObjectURL(a.href);
-  toast('Exported.');
-};
-document.getElementById('importBtn').onclick = ()=>document.getElementById('fileImport').click();
-document.getElementById('fileImport').onchange = e=>{
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev=>{
+  async function renderRoster(){
     try{
-      const d = JSON.parse(ev.target.result);
-      const imp = { sessions:[], arcs:[], threads:[], notes:[] };
-      ['sessions','arcs','threads','notes'].forEach(k=>{ if(Array.isArray(d[k])) imp[k]=d[k]; });
-      data = imp; save(); renderAll();
-      toast('Imported successfully.');
-    }catch(ex){ toast('⚠ Could not parse file.'); }
-  };
-  r.readAsText(f);
-  e.target.value='';
-};
-
-/* ====================================================================
-   RENDER ALL
-   ==================================================================== */
-function renderAll(){
-  renderStats();
-  renderSessions();
-  renderArcs();
-  renderThreads();
-  renderNotes();
-}
-
-/* ====================================================================
-   PARTY BOARD — shared notes (campaign_notes table)
-   Party notes are visible to every member; DM-only notes are filtered
-   out by the database itself and never reach a player's browser.
-   ==================================================================== */
-const PB_LINKED = !!(window.AFSync && AFSync.isLinked());
-let pbNotes = [], pbVis = 'party', pbKind = 'note', pbFilter = 'all', pbEditingId = null, pbFetchT = null;
-
-function pbSetKind(k){
-  pbKind = k;
-  document.getElementById('pb-kind-note').classList.toggle('on', k==='note');
-  document.getElementById('pb-kind-session').classList.toggle('on', k==='session');
-  document.getElementById('pb-title').placeholder = k==='session'
-    ? 'Session title (e.g. Session 12 — Into the Caves of Hunger)'
-    : 'Title (optional)';
-  document.getElementById('pb-body').placeholder = k==='session'
-    ? 'What happened this session? Where did the party leave off?'
-    : 'What does the party need to remember?';
-}
-
-function pbSetVis(v){
-  pbVis = v;
-  document.getElementById('pb-vis-party').classList.toggle('on', v==='party');
-  document.getElementById('pb-vis-dm').classList.toggle('on', v==='dm');
-}
-
-function pbFmt(ts){ try{ return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
-
-function pbRender(){
-  document.getElementById('cnt-party').textContent = pbNotes.length;
-  const feed = document.getElementById('pb-feed');
-  const list = pbFilter==='all' ? pbNotes : pbNotes.filter(n => (n.kind||'note')===pbFilter);
-  document.querySelectorAll('#pb-filter [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f===pbFilter));
-  if (!list.length){
-    feed.innerHTML = pbFilter==='session'
-      ? '<div class="pb-card pb-empty"><div class="ico">📜</div><p>The Adventure Log is unwritten. After your next session, post the first recap.</p></div>'
-      : '<div class="pb-card pb-empty"><div class="ico">📜</div><p>Nothing on the board yet. First post claims the top spot.</p></div>';
-    return;
+      const ms = await AFSync.members();
+      $('roster').innerHTML = ms.map(m =>
+        `<li><span>${m.display_name.replace(/[<>&]/g,'')}</span><span class="role">${m.role}</span></li>`).join('')
+        || '<li>No members yet</li>';
+    }catch(e){ $('roster').innerHTML = '<li>Could not load roster</li>'; }
   }
-  feed.innerHTML = list.map(n => {
-    const mine = n._mine, canEdit = mine || AFSync.isGM();
-    const isSess = (n.kind||'note')==='session';
-    return `<div class="pb-card pb-note${isSess?' session':''}">
-      ${n.title ? `<h4>${esc(n.title)}</h4>` : ''}
-      <div class="pb-body">${esc(n.body)}</div>
-      <div class="pb-meta">
-        ${isSess ? '<span class="pb-sess">📜 SESSION</span>' : ''}
-        <span>${esc(n.author_name||'Someone')}</span><span>·</span><span>${pbFmt(n.created_at)}</span>
-        ${n.visibility==='dm' ? '<span class="pb-dm">DM ONLY</span>' : ''}
-        ${canEdit ? `<span style="margin-left:auto"></span>
-          <button onclick="pbEdit('${n.id}')">Edit</button>
-          <button onclick="pbDelete('${n.id}')">Delete</button>` : ''}
-      </div>
-      ${pbReactBar(n.id)}
-    </div>`;
-  }).join('');
-}
 
-/* ---- reactions (Discord-style) ---- */
-const PB_EMOJI = ['👍','❤️','😂','😮','😢','🔥','🎲','⚔️','🛡️','✨','💀','🍺'];
-let pbReacts = {};   // { noteId: [ {user_id, reactor_name, emoji} ] }
-let pbMyId = null;
-
-function pbReactBar(noteId){
-  const rs = pbReacts[noteId] || [];
-  const byEmoji = {};
-  rs.forEach(r=>{ (byEmoji[r.emoji]=byEmoji[r.emoji]||[]).push(r); });
-  const pills = Object.keys(byEmoji).map(em=>{
-    const list = byEmoji[em];
-    const mine = list.some(r=>r.user_id===pbMyId);
-    const names = list.map(r=>esc(r.reactor_name||'Someone')).join(', ');
-    return `<button class="pb-react ${mine?'mine':''}" onclick="pbToggleReact('${noteId}','${em}')">
-        ${em}<span class="rc">${list.length}</span>
-        <span class="who"><b>${em}</b> ${names}</span></button>`;
-  }).join('');
-  return `<div class="pb-reacts">${pills}<button class="pb-addreact" onclick="pbOpenPicker(event,'${noteId}')" title="Add a reaction">＋</button></div>`;
-}
-
-async function pbToggleReact(noteId, emoji){
-  const mine = (pbReacts[noteId]||[]).some(r=>r.user_id===pbMyId && r.emoji===emoji);
-  try{
-    if(mine) await AFSync.removeReaction(noteId, emoji);
-    else     await AFSync.addReaction(noteId, emoji);
-    await pbFetchReacts(); pbRender();
-  }catch(e){ toast('⚠ Could not update reaction.'); }
-}
-
-async function pbFetchReacts(){
-  try{
-    const rows = await AFSync.fetchReactions();
-    const map = {};
-    rows.forEach(r=>{ (map[r.note_id]=map[r.note_id]||[]).push(r); });
-    pbReacts = map;
-  }catch(e){}
-}
-
-function pbOpenPicker(ev, noteId){
-  ev.stopPropagation();
-  document.querySelectorAll('.pb-picker').forEach(p=>p.remove());
-  const pop = document.createElement('div');
-  pop.className='pb-picker';
-  pop.innerHTML = PB_EMOJI.map(em=>`<button onclick="pbToggleReact('${noteId}','${em}');this.closest('.pb-picker').remove()">${em}</button>`).join('');
-  document.body.appendChild(pop);
-  const r = ev.target.getBoundingClientRect();
-  pop.style.left = Math.min(r.left, window.innerWidth-230)+'px';
-  pop.style.top = (r.bottom+6+window.scrollY)+'px';
-  setTimeout(()=>document.addEventListener('click', function close(e){
-    if(!pop.contains(e.target)){ pop.remove(); document.removeEventListener('click', close); }
-  }),0);
-}
-
-async function pbFetch(){
-  if (!PB_LINKED) return;
-  try{
-    const user = await AFSync.ensureAuth();
-    pbMyId = user.id;
-    const rows = await AFSync.fetchAll('campaign_notes', 'created_at');
-    pbNotes = rows.reverse().map(n => ({ ...n, _mine: n.author_id === user.id }));
-    await pbFetchReacts();
-    pbRender();
-  }catch(e){ toast('⚠ Could not load the Party Board.'); }
-}
-function pbFetchSoon(){ clearTimeout(pbFetchT); pbFetchT = setTimeout(pbFetch, 250); }
-
-async function pbSubmit(){
-  const title = document.getElementById('pb-title').value.trim();
-  const body  = document.getElementById('pb-body').value.trim();
-  if (!body){ toast('Write something first.'); return; }
-  const btn = document.getElementById('pb-post'); btn.disabled = true;
-  try{
-    if (pbEditingId){
-      await AFSync.update('campaign_notes', pbEditingId, { title, body, visibility: pbVis, kind: AFSync.isGM() ? pbKind : 'note' });
-      pbCancelEdit();
-    } else {
-      await AFSync.insert('campaign_notes',
-        { title, body, visibility: pbVis, kind: AFSync.isGM() ? pbKind : 'note', author_name: AFSync.link().display_name || '' });
-      document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
+  function render(){
+    const conf = AFSync.configured(), l = AFSync.link();
+    show('not-configured', !conf);
+    show('unlinked', conf && !l);
+    show('linked',   conf && !!l);
+    if (conf && l){
+      $('l-name').textContent = l.name || 'Campaign';
+      $('l-me').textContent = l.display_name || '';
+      $('l-role').textContent = l.role === 'gm' ? 'Game Master' : 'Player';
+      show('gm-code-block', l.role === 'gm');
+      if (l.role === 'gm') $('l-code').textContent = l.join_code;
+      renderRoster();
+      AFSync.onChange && AFSync.onChange('campaign_members', renderRoster);
     }
-    pbFetch();
-  }catch(e){ toast('⚠ ' + (e.message || 'Post failed.')); }
-  btn.disabled = false;
-}
-
-function pbEdit(id){
-  const n = pbNotes.find(x=>x.id===id); if(!n) return;
-  pbEditingId = id;
-  document.getElementById('pb-title').value = n.title||'';
-  document.getElementById('pb-body').value = n.body||'';
-  if (AFSync.isGM()){ pbSetVis(n.visibility); pbSetKind(n.kind||'note'); }
-  document.getElementById('pb-post').textContent = 'Save';
-  document.getElementById('pb-cancel').style.display = '';
-  document.getElementById('pb-body').focus();
-}
-function pbCancelEdit(){
-  pbEditingId = null;
-  document.getElementById('pb-title').value=''; document.getElementById('pb-body').value='';
-  pbSetVis('party');
-  if (AFSync.isGM && AFSync.isGM()) pbSetKind('note');
-  document.getElementById('pb-post').textContent = 'Post';
-  document.getElementById('pb-cancel').style.display = 'none';
-}
-async function pbDelete(id){
-  if (!confirm('Remove this note from the board?')) return;
-  try{ await AFSync.remove('campaign_notes', id); pbFetch(); }
-  catch(e){ toast('⚠ Could not delete.'); }
-}
-
-(function pbInit(){
-  document.getElementById('pb-unlinked').style.display = PB_LINKED ? 'none' : '';
-  document.getElementById('pb-linked').style.display   = PB_LINKED ? '' : 'none';
-  if (!PB_LINKED) return;
-  const l = AFSync.link();
-  /* linked chip in the header */
-  try{
-    const chip = document.createElement('span');
-    chip.style.cssText = 'display:inline-flex;align-items:center;gap:7px;margin-left:12px;padding:5px 12px;border:1px solid #9c7d3c;border-radius:99px;font-size:11px;letter-spacing:.08em;color:#e3b352;vertical-align:middle;';
-    chip.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#8fce9a;box-shadow:0 0 7px rgba(143,206,154,.7)"></span>' + (l.name||'Linked').replace(/[<>&]/g,'');
-    chip.title = 'Party Board syncs live with your campaign';
-    document.querySelector('.brand h1').appendChild(chip);
-  }catch(e){}
-  /* GM sees the visibility toggle */
-  if (AFSync.isGM()){
-    document.getElementById('pb-vis').style.display = '';
-    document.getElementById('pb-kind').style.display = '';
   }
-  document.getElementById('pb-filter').addEventListener('click', e => {
-    const b = e.target.closest('[data-f]'); if(!b) return;
-    pbFilter = b.dataset.f; pbRender();
-  });
-  pbFetch();
-  AFSync.onChange('campaign_notes', pbFetchSoon);
-  AFSync.onChange('note_reactions', ()=>{ clearTimeout(pbFetchT); pbFetchT = setTimeout(async()=>{ await pbFetchReacts(); pbRender(); }, 200); });
-})();
 
-/* init */
-renderAll();
+  $('btn-create').onclick = async () => {
+    const name = $('c-name').value.trim(), me = $('c-gm').value.trim();
+    if (!name || !me) return flash('msg-create','Campaign name and your name are both needed.',false);
+    $('btn-create').disabled = true;
+    try{ await AFSync.createCampaign(name, me); render(); }
+    catch(e){ flash('msg-create', e.message || 'Something went wrong.', false); }
+    $('btn-create').disabled = false;
+  };
+
+  $('btn-join').onclick = async () => {
+    const code = $('j-code').value.trim(), me = $('j-name').value.trim();
+    if (!code || !me) return flash('msg-join','Join code and your name are both needed.',false);
+    $('btn-join').disabled = true;
+    try{ await AFSync.joinCampaign(code, me); render(); }
+    catch(e){ flash('msg-join', e.message || 'That code didn\'t work.', false); }
+    $('btn-join').disabled = false;
+  };
+
+  $('btn-leave').onclick = async () => {
+    if (!confirm('Leave this campaign on this device? Your solo data is untouched.')) return;
+    try{ await AFSync.leaveCampaign(); }catch(e){}
+    render();
+  };
+
+  $('btn-copy') && ($('btn-copy').onclick = () => {
+    navigator.clipboard.writeText($('l-code').textContent).then(()=>{
+      $('btn-copy').textContent='Copied!'; setTimeout(()=>$('btn-copy').textContent='Copy',1500);
+    });
+  });
+
+  render();
+})();
 </script>
 <script src="arcanaforge-quicksearch.js"></script>
 <script src="arcanaforge-update-banner.js"></script>
