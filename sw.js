@@ -1,115 +1,14 @@
 /* =====================================================================
-   THE TABLE — service worker
-   Makes the toolkit installable and fully offline-capable.
-   Strategy:
-     • Pages (HTML / navigations): NETWORK-FIRST — when online you always get
-       the latest version you've deployed; when offline you get the cached copy.
-     • App assets (icons, manifest): CACHE-FIRST.
-     • Google Fonts: CACHE-FIRST (so the Cinzel/Spline Sans render offline).
-   Your Codex and all tool data live in localStorage, which the service worker
-   never touches — caching here only affects the app files, never your data.
-
-   To force a clean refresh of everything after a big update, bump CACHE_VERSION.
+   ArcanaForge — Supabase configuration
+   Fill in the two values below from your Supabase project:
+   Dashboard → Project Settings → API
+     • Project URL      → SUPABASE_URL
+     • anon public key  → SUPABASE_ANON_KEY
+   The anon key is DESIGNED to be public — it can only do what the
+   row-level-security policies in supabase-schema.sql allow.
+   Never put the service_role key here or anywhere in the site.
    ===================================================================== */
-const CACHE_VERSION = 'arcanaforge-v34';
-
-/* App shell precached on install. Missing files are skipped gracefully, so an
-   optional tool you haven't added yet won't break the install. */
-const SHELL = [
-  './',
-  './index.html',
-  './dashboard.html',
-  './codex.html',
-  './character-sheets.html',
-  './initiative-tracker.html',
-  './npc-generator.html',
-  './loot-generator.html',
-  './shop-generator.html',
-  './dungeon-generator.html',
-  './environment-generator.html',
-  './campaign-notes.html',
-  './group-inventory.html',
-  './campaign.html',
-  './custom-generators.html',
-  './character-builder.html',
-  './arcanaforge-quicksearch.js',
-  './arcanaforge-update-banner.js',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-512-maskable.png',
-  './icon-180.png',
-  './favicon.png',
-  './arcanaforge-mark.png',
-  './arcanaforge-wordmark.png'
-];
-
-self.addEventListener('install', e => {
-  e.waitUntil((async () => {
-    const c = await caches.open(CACHE_VERSION);
-    await Promise.allSettled(SHELL.map(u => c.add(new Request(u, { cache: 'reload' }))));
-    self.skipWaiting();
-  })());
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k)));
-    await self.clients.claim();
-  })());
-});
-
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  let url;
-  try { url = new URL(req.url); } catch (_) { return; }
-
-  // Google Fonts — cache-first so fonts work offline
-  if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
-    e.respondWith(cacheFirst(req));
-    return;
-  }
-  // Only handle our own origin beyond this point
-  if (url.origin !== self.location.origin) return;
-
-  // Pages / navigations — network-first
-  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
-    e.respondWith(networkFirst(req));
-    return;
-  }
-  // Scripts (sync engine, config, quick search) — network-first so code
-  // updates arrive on the next load instead of hiding behind the cache
-  if (url.pathname.endsWith('.js')) {
-    e.respondWith(networkFirst(req));
-    return;
-  }
-  // Everything else same-origin (icons, manifest) — cache-first
-  e.respondWith(cacheFirst(req));
-});
-
-async function networkFirst(req) {
-  const c = await caches.open(CACHE_VERSION);
-  try {
-    const res = await fetch(req);
-    if (res && res.ok) c.put(req, res.clone());
-    return res;
-  } catch (_) {
-    const hit = await c.match(req);
-    return hit || (await c.match('./dashboard.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-  }
-}
-
-async function cacheFirst(req) {
-  const c = await caches.open(CACHE_VERSION);
-  const hit = await c.match(req);
-  if (hit) return hit;
-  try {
-    const res = await fetch(req);
-    if (res && (res.ok || res.type === 'opaque')) c.put(req, res.clone());
-    return res;
-  } catch (_) {
-    return hit || new Response('', { status: 504 });
-  }
-}
+window.ARCANAFORGE_SUPABASE = {
+  SUPABASE_URL: "https://zquqrvbodscxjfhyivnd.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxdXFydmJvZHNjeGpmaHlpdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTYzMDcsImV4cCI6MjA5ODYzMjMwN30.mYzF9TwoN4TvbyNOk2Cdk1UF4UJag8w3Ocji1eqwE9o"
+};
