@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://zquqrvbodscxjfhyivnd.supabase.co wss://zquqrvbodscxjfhyivnd.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — ArcanaForge</title>
+<meta name="description" content="Report a bug, suggest a feature, or send feedback about ArcanaForge — the free Game Master toolkit.">
+<link rel="canonical" href="https://arcanaforge.com/contact.html">
+<meta name="theme-color" content="#0a0c11">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.png" sizes="64x64" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Spline+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/supabase-js-2.110.2.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<style>
+:root{
+  --bg:#0a0c11;--panel:#161922;--panel-deep:#10131b;--line:#2a2f3d;--line-soft:#21252f;
+  --gold:#e3b352;--gold-soft:#c9a24b;--gold-dim:#9c7d3c;--blood:#c62a30;
+  --txt:#e7e3d8;--txt-soft:#b4b0a4;--txt-faint:#6f6c63;
+  --display:'Cinzel',serif;--ui:'Spline Sans',system-ui,sans-serif;--radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);font-weight:300;line-height:1.6;min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+.wrap{max-width:680px;margin:0 auto;padding:0 20px 80px}
+header{border-bottom:1px solid var(--line-soft);background:rgba(10,12,17,.85);position:sticky;top:0;backdrop-filter:blur(8px);z-index:5}
+.nav{max-width:680px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;letter-spacing:.06em;color:var(--gold);font-size:17px}
+.brand img{height:30px;width:auto}
+.nav a.back{font-size:13.5px;color:var(--txt-soft)}
+.nav a.back:hover{color:var(--gold)}
+h1{font-family:var(--display);font-weight:600;letter-spacing:.1em;color:var(--gold);font-size:30px;text-align:center;margin:44px 0 10px}
+.sub{color:var(--txt-soft);text-align:center;font-size:15px;max-width:520px;margin:0 auto 34px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel-deep));border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 22px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.flabel{display:block;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-soft);margin:0 0 6px}
+.finp,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:11px 13px;font-size:14.5px;font-family:var(--ui);outline:none}
+.finp:focus,select:focus,textarea:focus{border-color:var(--gold-dim)}
+textarea{min-height:170px;resize:vertical;line-height:1.55}
+.row{margin-bottom:18px}
+.hint{font-size:12px;color:var(--txt-faint);margin-top:5px}
+.count{float:right;font-size:11.5px;color:var(--txt-faint)}
+.btn{display:inline-block;background:linear-gradient(180deg,#eec26a,#d4a542);color:#1a1408;border:1px solid #f3d489;border-radius:10px;font-family:var(--ui);font-weight:600;font-size:15px;padding:12px 30px;cursor:pointer;transition:.12s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(227,179,82,.3)}
+.btn[disabled]{opacity:.55;cursor:default;transform:none;box-shadow:none}
+.msg{margin-top:16px;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+.msg.ok{display:block;background:rgba(70,160,90,.12);border:1px solid rgba(70,160,90,.45);color:#8fd8a0}
+.msg.err{display:block;background:rgba(198,42,48,.10);border:1px solid rgba(198,42,48,.45);color:#e58a8e}
+.alt{margin-top:26px;text-align:center;color:var(--txt-soft);font-size:13.5px}
+.hp{position:absolute;left:-9999px;top:-9999px;height:0;width:0;overflow:hidden}
+footer{border-top:1px solid var(--line-soft);margin-top:70px}
+.foot{max-width:680px;margin:0 auto;padding:26px 20px;text-align:center;color:var(--txt-faint);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brand" href="index.html"><img src="arcanaforge-mark.png" alt="">ArcanaForge</a>
+    <a class="back" href="dashboard.html">&larr; Dashboard</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>Contact</h1>
+  <p class="sub">Found a bug? Have an idea? Just want to say something? It all lands in the same forge. Messages are sent anonymously unless you choose to leave a way to reach you.</p>
+
+  <div class="card">
+    <form id="fbForm" novalidate>
+      <div class="row">
+        <label class="flabel" for="fb-kind">What is this about?</label>
+        <select id="fb-kind">
+          <option value="bug">Bug report</option>
+          <option value="recommendation">Recommendation / feature idea</option>
+          <option value="feedback" selected>General feedback</option>
+        </select>
+      </div>
+      <div class="row">
+        <label class="flabel" for="fb-title">Title <span class="count" id="cnt-title">0 / 200</span></label>
+        <input class="finp" type="text" id="fb-title" maxlength="200" placeholder="A short summary">
+      </div>
+      <div class="row">
+        <label class="flabel" for="fb-body">Message <span class="count" id="cnt-body">0 / 5000</span></label>
+        <textarea id="fb-body" maxlength="5000" placeholder="The details — for bugs, what you did, what you expected, and what happened instead."></textarea>
+      </div>
+      <div class="row">
+        <label class="flabel" for="fb-contact">How can we reach you? <span style="text-transform:none;color:var(--txt-faint);font-weight:400">(optional)</span></label>
+        <input class="finp" type="text" id="fb-contact" maxlength="200" placeholder="Email, Discord, Reddit — only if you want a reply">
+        <div class="hint">Leave blank to stay fully anonymous.</div>
+      </div>
+      <!-- honeypot: humans never see this; bots that fill it are ignored -->
+      <div class="hp" aria-hidden="true"><label>Website<input type="text" id="fb-website" tabindex="-1" autocomplete="off"></label></div>
+      <button class="btn" id="fb-send" type="submit">Send message</button>
+      <div class="msg" id="fb-msg"></div>
+    </form>
+  </div>
+
+  <p class="alt">Prefer email? Reach us at <a href="mailto:contact@arcanaforge.com">contact@arcanaforge.com</a></p>
+</div>
+
+<footer><div class="foot">ArcanaForge — your table, your rules, your data.</div></footer>
+
+<script>
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  /* live character counters */
+  [['fb-title','cnt-title',200],['fb-body','cnt-body',5000]].forEach(([inp,cnt,max])=>{
+    $(inp).addEventListener('input',()=>{ $(cnt).textContent = $(inp).value.length+' / '+max; });
+  });
+
+  let sb = null;
+  function client(){
+    if(sb) return sb;
+    const c = window.ARCANAFORGE_SUPABASE;
+    if(!c || !c.SUPABASE_URL || !window.supabase) return null;
+    sb = window.supabase.createClient(c.SUPABASE_URL, c.SUPABASE_ANON_KEY);
+    return sb;
+  }
+  async function ensureAuth(s){
+    const { data:{ session } } = await s.auth.getSession();
+    if(session) return session.user;
+    const { data, error } = await s.auth.signInAnonymously();
+    if(error) throw error;
+    return data.user;
+  }
+  function show(kind, text){
+    const m=$('fb-msg'); m.className='msg '+kind; m.textContent=text;
+  }
+
+  $('fbForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if($('fb-website').value) { show('ok','Thanks — your message has been sent.'); return; } /* bot trap: pretend success */
+    const title=$('fb-title').value.trim(), body=$('fb-body').value.trim();
+    if(!title){ show('err','Please add a short title.'); return; }
+    if(!body){ show('err','Please write a message.'); return; }
+    const btn=$('fb-send'); btn.disabled=true; btn.textContent='Sending\u2026';
+    try{
+      const s=client();
+      if(!s) throw new Error('offline');
+      await ensureAuth(s);
+      const { error } = await s.from('site_feedback').insert({
+        kind: $('fb-kind').value,
+        title, body,
+        contact: $('fb-contact').value.trim(),
+        page: 'contact.html'
+      });
+      if(error) throw error;
+      show('ok','Thanks \u2014 your message has been sent to the forge. If you left contact info, we may follow up.');
+      $('fb-title').value=''; $('fb-body').value=''; $('fb-contact').value='';
+      $('cnt-title').textContent='0 / 200'; $('cnt-body').textContent='0 / 5000';
+    }catch(err){
+      const rate = err && err.message && /policy|violates/i.test(err.message);
+      show('err', rate
+        ? 'Message limit reached for now \u2014 please try again in an hour, or email contact@arcanaforge.com.'
+        : 'Could not send right now \u2014 please try again, or email contact@arcanaforge.com.');
+    }finally{
+      btn.disabled=false; btn.textContent='Send message';
+    }
+  });
+})();
+</script>
+</body>
+</html>
