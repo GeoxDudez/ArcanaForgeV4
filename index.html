@@ -16,9 +16,38 @@
 <meta property="og:image" content="https://arcanaforge.com/arcanaforge-logo.png">
 <meta name="twitter:card" content="summary_large_image">
 
+<link rel="canonical" href="https://arcanaforge.com/">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="favicon.png">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="favicon.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
+
+<!-- Structured data: tells Google the site name, summary, and logo -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://arcanaforge.com/#website",
+      "url": "https://arcanaforge.com/",
+      "name": "ArcanaForge",
+      "description": "A free Game Master toolkit: generators, character sheets, initiative tracker, campaign notes, and group inventory — all driven by one shared Codex, with live campaign sync.",
+      "publisher": { "@id": "https://arcanaforge.com/#org" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://arcanaforge.com/#org",
+      "name": "ArcanaForge",
+      "url": "https://arcanaforge.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://arcanaforge.com/arcanaforge-logo.png"
+      }
+    }
+  ]
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
